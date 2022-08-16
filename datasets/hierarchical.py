@@ -36,13 +36,23 @@ def features_to_data(features, m, num_classes, num_features, num_layers, samples
     np.random.seed(seed)
     x = features[-1].reshape(num_classes, *sum([(m, 2) for _ in range(num_layers)], ()))
     y = torch.arange(num_classes)[None].repeat(samples_per_class, 1).t().flatten()
-    indices = np.random.choice(range(m), size=(num_layers, samples_per_class * num_classes))
+    
+    indices = []
+    for l in range(num_layers):
 
-    p = torch.arange(1, x.ndim, 2)
-    x = x.permute(0, *p, *p+1)[tuple([y.numpy(), *indices])]
+        if l != 0:
+            left_right = torch.arange(2)[None].repeat(2 ** (num_layers - 2), 1).reshape(2 ** (num_layers - l - 1),
+                                                                                        -1).t().flatten()
+            left_right = left_right[None].repeat(samples_per_class * num_classes, 1)
+            indices.append(left_right)
 
-    x = x.flatten(1)
-    # x = (x + 1) / num_features
+        random_features = np.random.choice(range(m), size=(samples_per_class * num_classes, 2 ** l)).repeat(
+            2 ** (num_layers - l - 1), 1)
+        indices.append(torch.tensor(random_features))
+
+    yi = y[:, None].repeat(1, 2 ** (num_layers - 1))
+
+    x = x[tuple([yi, *indices])].flatten(1)
 
     return x, y
 
