@@ -36,7 +36,7 @@ def features_to_data(features, m, num_classes, num_features, num_layers, samples
     np.random.seed(seed)
     x = features[-1].reshape(num_classes, *sum([(m, 2) for _ in range(num_layers)], ()))
     y = torch.arange(num_classes)[None].repeat(samples_per_class, 1).t().flatten()
-    
+
     indices = []
     for l in range(num_layers):
 
