@@ -6,7 +6,18 @@ from itertools import *
 import random
 import numpy as np
 
+
 def hierarchical_features(num_features, num_layers, m, num_classes, seed=0):
+    """
+    Build hierarchy of features.
+
+    :param num_features: number of features to choose from at each layer (short: `n`).
+    :param num_layers: number of layers in the hierarchy (short: `l`)
+    :param m: features multiplicity (number of ways in which a feature can be made from sub-feat.)
+    :param num_classes: number of different classes
+    :param seed: sampling sub-features seed
+    :return: features hierarchy as a list of length num_layers
+    """
     random.seed(seed)
     features = [torch.arange(num_classes)]
     for l in range(num_layers):
@@ -33,7 +44,19 @@ def hierarchical_features(num_features, num_layers, m, num_classes, seed=0):
     return features
 
 
-def features_to_data(features, m, num_classes, num_features, num_layers, samples_per_class, seed=0):
+def features_to_data(features, m, num_classes, num_layers, samples_per_class, seed=0):
+    """
+    Build hierarchical dataset from features hierarchy.
+
+    :param features: hierarchy of features
+    :param m: features multiplicity (number of ways in which a feature can be made from sub-feat.)
+    :param num_classes: number of different classes
+    :param num_layers: number of layers in the hierarchy (short: `l`)
+    :param samples_per_class: self-expl.
+    :param seed: controls randomness in sampling
+    :return: dataset {x, y}
+    """
+
     np.random.seed(seed)
     x = features[-1].reshape(num_classes, *sum([(m, 2) for _ in range(num_layers)], ()))
     y = torch.arange(num_classes)[None].repeat(samples_per_class, 1).t().flatten()
@@ -59,54 +82,17 @@ def features_to_data(features, m, num_classes, num_features, num_layers, samples
 
 
 def dec2bin(x, bits=None):
+    """
+    Convert decimal number to binary.
+    :param x: decimal number
+    :param bits: number of bits to use. If `None`, the minimum possible is used.
+    :return: x in binary
+    """
     if bits is None:
         bits = (x.max() + 1).log2().ceil().item()
     x = x.int()
     mask = 2 ** torch.arange(bits - 1, -1, -1).to(x.device, x.dtype)
     return x.unsqueeze(-1).bitwise_and(mask).ne(0).float()
-
-
-# def features_to_data(features, m, num_classes, num_features, num_layers, samples_per_class):
-#     x = features[-1].reshape(num_classes, *sum([(m, 2) for _ in range(num_layers)], ()))
-#     y = torch.arange(num_classes)[None].repeat(samples_per_class, 1).t().flatten()
-#     ii = np.random.choice(range(m), size=(num_layers, samples_per_class * num_classes))
-#     if num_layers == 1:
-#         x = x[y, ii[0]]
-#     elif num_layers == 2:
-#         x = x[y, ii[0], :, ii[1], :]
-#     elif num_layers == 3:
-#         x = x[y, ii[0], :, ii[1], :, ii[2], :]
-#     elif num_layers == 4:
-#         x = x[y, ii[0], :, ii[1], :, ii[2], :, ii[3], :]
-#     elif num_layers == 5:
-#         x = x[y, ii[0], :, ii[1], :, ii[2], :, ii[3], :, ii[4], :]
-#
-#     x = x.flatten(1)
-#     x = (x + 1) / num_features
-#
-#     return x, y
-
-
-# def features_to_data(features, m, num_classes, num_features):
-#     x = features[-1]
-#     x = x.reshape(num_classes, -1, m, 2)
-#     N = x.shape[1]
-#     combs = list(product(*[range(m) for _ in range(N)]))
-#     x_by_class = []
-#     for xi in x:
-#         combs_class = deepcopy(combs)
-#         shuffle(combs_class)
-#         combs_class = combs_class[:50000]
-#         x_by_class.append(torch.stack([xi[range(N), c] for c in combs_class]))
-#     x = torch.stack(x_by_class).reshape(-1, N * 2)
-#     x = (x + 1) / num_features
-#
-#     samples_per_class = x.shape[0] // num_classes
-#
-#     y = torch.arange(num_classes)
-#     y = y[None].repeat(samples_per_class, 1).T.reshape(-1)
-#
-#     return x, y
 
 
 class HierarchicalDataset(Dataset):
@@ -133,7 +119,7 @@ class HierarchicalDataset(Dataset):
         self.num_classes = num_classes
 
         features = hierarchical_features(num_features, num_layers, m, num_classes, seed=seed)
-        self.x, self.targets = features_to_data(features, m, num_classes, num_features, num_layers, samples_per_class=10000, seed=seed)
+        self.x, self.targets = features_to_data(features, m, num_classes, num_layers, samples_per_class=10000, seed=seed)
 
         if input_format == 'binary':
             self.x = dec2bin(self.x)
