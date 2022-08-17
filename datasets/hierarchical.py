@@ -13,7 +13,8 @@ def hierarchical_features(num_features, num_layers, m, num_classes, seed=0):
         previous_features = features[-1].flatten()
         features_set = list(set([i.item() for i in previous_features]))
         num_layer_features = len(features_set)
-        new_features = list(combinations(range(num_features), 2))
+        # new_features = list(combinations(range(num_features), 2))
+        new_features = list(product(range(num_features), range(num_features)))
         assert len(new_features) >= m * num_layer_features, "Not enough features to choose from!!"
         random.shuffle(new_features)
         new_features = new_features[:m * num_layer_features]
