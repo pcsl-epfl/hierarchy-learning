@@ -1,6 +1,7 @@
-'''
+"""
     Train networks on 1d hierarchical models of data.
-'''
+"""
+
 import os
 import argparse
 import time
@@ -74,7 +75,7 @@ def run(args):
             yield out
         if losstr == 0:
             trloss_flag += 1
-            if trloss_flag >= 100:
+            if trloss_flag >= args.zero_loss_epochs:
                 break
 
     try:
@@ -200,7 +201,7 @@ def main():
 
     ### DATASET ARGS ###
     parser.add_argument("--dataset", type=str, required=True)
-    parser.add_argument("--ptr", type=int, default=0)
+    parser.add_argument("--ptr", type=float, default=.8, help='Number of training point. If in [0, 1], fraction of training points w.r.t. total.')
     parser.add_argument("--pte", type=int, default=5000)
     parser.add_argument("--batch_size", type=int, default=128)
     parser.add_argument("--scale_batch_size", type=int, default=0)
@@ -211,8 +212,8 @@ def main():
     parser.add_argument("--num_features", type=int, default=8)
     parser.add_argument("--m", type=int, default=2)
     parser.add_argument("--num_layers", type=int, default=2)
-    parser.add_argument("--num_classes", type=int, default=2)
-    parser.add_argument("--input_format", type=str, default='decimal')
+    parser.add_argument("--num_classes", type=int, default=-1)
+    parser.add_argument("--input_format", type=str, default='onehot')
 
     ### ARCHITECTURES ARGS ###
     parser.add_argument("--net", type=str, required=True)
@@ -240,6 +241,7 @@ def main():
     parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
     parser.add_argument('--weight_decay', default=5e-4, type=float)
     parser.add_argument("--epochs", type=int, default=250)
+    parser.add_argument("--zero_loss_epochs", type=int, default=0)
     parser.add_argument("--rescale_epochs", type=int, default=0)
 
     parser.add_argument('--alpha', default=1., type=float, help='alpha-trick parameter')
@@ -264,6 +266,13 @@ def main():
         args.seed_data = args.seed_init
     if args.seed_net == -1:
         args.seed_net = args.seed_init
+    if args.num_classes == -1:
+        args.num_classes = args.num_features
+    if args.ptr <= 1:
+        args.ptr = int(args.ptr * args.m ** (2 ** args.num_layers - 1) * args.num_classes)
+    else:
+        args.ptr = int(args.ptr)
+
 
     with open(args.output, 'wb') as handle:
         pickle.dump(args, handle)

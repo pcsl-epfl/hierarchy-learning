@@ -9,7 +9,7 @@ import numpy as np
 def hierarchical_features(num_features, num_layers, m, num_classes, seed=0):
     random.seed(seed)
     features = [torch.arange(num_classes)]
-    for i in range(num_layers):
+    for l in range(num_layers):
         previous_features = features[-1].flatten()
         features_set = list(set([i.item() for i in previous_features]))
         num_layer_features = len(features_set)
