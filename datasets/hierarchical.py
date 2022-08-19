@@ -26,9 +26,11 @@ def hierarchical_features(num_features, num_layers, m, num_classes, seed=0):
         num_layer_features = len(features_set)
         # new_features = list(combinations(range(num_features), 2))
         new_features = list(product(range(num_features), range(num_features)))
-        assert len(new_features) >= m * num_layer_features, "Not enough features to choose from!!"
+        assert (
+            len(new_features) >= m * num_layer_features
+        ), "Not enough features to choose from!!"
         random.shuffle(new_features)
-        new_features = new_features[:m * num_layer_features]
+        new_features = new_features[: m * num_layer_features]
         new_features = list(sum(new_features, ()))  # tuples to list
 
         new_features = torch.tensor(new_features)
@@ -65,13 +67,23 @@ def features_to_data(features, m, num_classes, num_layers, samples_per_class, se
     for l in range(num_layers):
 
         if l != 0:
-            left_right = torch.arange(2)[None].repeat(2 ** (num_layers - 2), 1).reshape(2 ** (num_layers - l - 1),
-                                                                                        -1).t().flatten()
+            # indexing the left AND right sub-features
+            # Repeat is there such that higher level features are chosen consistently for a give data-point
+            left_right = (
+                torch.arange(2)[None]
+                .repeat(2 ** (num_layers - 2), 1)
+                .reshape(2 ** (num_layers - l - 1), -1)
+                .t()
+                .flatten()
+            )
             left_right = left_right[None].repeat(samples_per_class * num_classes, 1)
             indices.append(left_right)
 
-        random_features = np.random.choice(range(m), size=(samples_per_class * num_classes, 2 ** l)).repeat(
-            2 ** (num_layers - l - 1), 1)
+        # randomly choose sub-features
+        # TODO: to avoid resampling, enumerate all subfeatures and only later randomize. Too large tensor for memory?
+        random_features = np.random.choice(
+            range(m), size=(samples_per_class * num_classes, 2 ** l)
+        ).repeat(2 ** (num_layers - l - 1), 1)
         indices.append(torch.tensor(random_features))
 
     yi = y[:, None].repeat(1, 2 ** (num_layers - 1))
@@ -97,20 +109,20 @@ def dec2bin(x, bits=None):
 
 class HierarchicalDataset(Dataset):
     """
-        Hierarchical dataset.
+    Hierarchical dataset.
     """
 
     def __init__(
-            self,
-            num_features=8,
-            m=2,  # features multiplicity
-            num_layers=2,
-            num_classes=2,
-            seed=0,
-            train=True,
-            input_format=0,
-            transform=None,
-            testsize=-1
+        self,
+        num_features=8,
+        m=2,  # features multiplicity
+        num_layers=2,
+        num_classes=2,
+        seed=0,
+        train=True,
+        input_format=0,
+        transform=None,
+        testsize=-1,
     ):
         torch.manual_seed(seed)
         self.num_features = num_features
@@ -118,15 +130,19 @@ class HierarchicalDataset(Dataset):
         self.num_layers = num_layers
         self.num_classes = num_classes
 
-        features = hierarchical_features(num_features, num_layers, m, num_classes, seed=seed)
-        self.x, self.targets = features_to_data(features, m, num_classes, num_layers, samples_per_class=10000, seed=seed)
+        features = hierarchical_features(
+            num_features, num_layers, m, num_classes, seed=seed
+        )
+        self.x, self.targets = features_to_data(
+            features, m, num_classes, num_layers, samples_per_class=10000, seed=seed
+        )
 
-        if input_format == 'binary':
+        if input_format == "binary":
             self.x = dec2bin(self.x)
             self.x = self.x.permute(0, 2, 1)
-        elif input_format == 'decimal':
+        elif input_format == "decimal":
             self.x = (self.x[:, None] + 1) / num_features
-        elif input_format == 'onehot':
+        elif input_format == "onehot":
             self.x = F.one_hot(self.x.long()).float()
             self.x = self.x.permute(0, 2, 1)
         else:

@@ -5,15 +5,13 @@ import torch.nn.functional as F
 
 class ConvBlockNT(nn.Module):
     """
-        Convolutional block with NTK initialization
+    Convolutional block with NTK initialization
     """
 
     def __init__(self, input_ch, h, filter_size, stride, pbc, batch_norm=False):
 
         super().__init__()
-        self.w = nn.Parameter(
-            torch.randn(h, input_ch, filter_size)
-        )
+        self.w = nn.Parameter(torch.randn(h, input_ch, filter_size))
         self.b = nn.Parameter(torch.randn(h))
         self.stride = stride
         self.pbc = pbc
@@ -25,22 +23,24 @@ class ConvBlockNT(nn.Module):
 
         if self.pbc:
             pool_size = (self.w.size(-1) - 1) // 2
-            x = F.pad(x, (pool_size,
-                          pool_size), mode='circular')
+            x = F.pad(x, (pool_size, pool_size), mode="circular")
         h = self.w[0].numel()
-        x = F.conv1d(x, self.w / h ** .5,
-                     bias=self.b * 0.1, # / h ** .5,
-                     stride=self.stride).relu()
+        x = F.conv1d(
+            x, self.w / h ** 0.5, bias=self.b * 0.1, stride=self.stride  # / h ** .5,
+        ).relu()
         if self.batch_norm:
             x = self.bn(x)
         return x
+
 
 class ConvBlockSD(nn.Module):
     """
     Convolutional block with standard torch initialization
     """
 
-    def __init__(self, input_ch, h, filter_size, stride, pbc, bias=True, batch_norm=False):
+    def __init__(
+        self, input_ch, h, filter_size, stride, pbc, bias=True, batch_norm=False
+    ):
 
         super().__init__()
         self.conv = nn.Conv1d(
@@ -48,7 +48,8 @@ class ConvBlockSD(nn.Module):
             out_channels=h,
             kernel_size=filter_size,
             stride=stride,
-            bias=bias)
+            bias=bias,
+        )
         if batch_norm:
             self.bn = nn.BatchNorm1d(num_features=h)
         self.batch_norm = batch_norm
@@ -58,14 +59,15 @@ class ConvBlockSD(nn.Module):
     def forward(self, x):
 
         if self.pbc:
-            pool_size = int((self.filter_size - 1) / 2.)
-            x = F.pad(x, (pool_size, pool_size), mode='circular')
+            pool_size = int((self.filter_size - 1) / 2.0)
+            x = F.pad(x, (pool_size, pool_size), mode="circular")
         x = self.conv(x)
         x = x.relu()
         if self.batch_norm:
             x = self.bn(x)
 
         return x
+
 
 class ConvNetGAPMF(nn.Module):
     """
@@ -74,14 +76,17 @@ class ConvNetGAPMF(nn.Module):
     """
 
     def __init__(
-            self, n_blocks, input_ch, h,
-            filter_size, stride, pbc, out_dim, batch_norm):
+        self, n_blocks, input_ch, h, filter_size, stride, pbc, out_dim, batch_norm
+    ):
 
         super().__init__()
-        self.conv = nn.Sequential(ConvBlockNT(input_ch, h, filter_size, stride, pbc, batch_norm=batch_norm),
-                                  *[ConvBlockNT(h, h, filter_size, stride, pbc, batch_norm=batch_norm)
-                                      for _ in range(n_blocks-1)]
-                                  )
+        self.conv = nn.Sequential(
+            ConvBlockNT(input_ch, h, filter_size, stride, pbc, batch_norm=batch_norm),
+            *[
+                ConvBlockNT(h, h, filter_size, stride, pbc, batch_norm=batch_norm)
+                for _ in range(n_blocks - 1)
+            ]
+        )
         self.beta = nn.Parameter(torch.randn(h, out_dim))
 
     def forward(self, x):
