@@ -154,7 +154,7 @@ class HierarchicalDataset(Dataset):
         self.num_classes = num_classes
 
 
-        samples_per_class = min(10 * m ** (2 ** num_layers - 1), 100000)
+        samples_per_class = min(10 * m ** (2 ** num_layers - 1), 500000)
 
         features = hierarchical_features(
             num_features, num_layers, m, num_classes, seed=seed
@@ -173,7 +173,9 @@ class HierarchicalDataset(Dataset):
             self.x = self.x.permute(0, 2, 1)
         elif input_format == "decimal":
             self.x = (self.x[:, None] + 1) / num_features
-        elif input_format == "onehot":
+        elif "onehot" in input_format:
+            if input_format == "onehot_pairs":
+                self.x = pairing_features(self.x)
             self.x = F.one_hot(self.x.long()).float()
             self.x = self.x.permute(0, 2, 1)
         else:
@@ -212,3 +214,16 @@ class HierarchicalDataset(Dataset):
         #     x += torch.randn(x.shape, generator=g) * self.background_noise
 
         return x, y
+
+def pairs_to_num(xi):
+    ln = len(xi)
+    xin = torch.zeros(ln // 2)
+    for ii, xii in enumerate(xi):
+        xin[ii // 2] += xii * 10 ** (ii % 2)
+    return xin
+
+def pairing_features(x):
+    xn = torch.randn(x.shape[0], x.shape[-1] // 2)
+    for i, xi in enumerate(x.squeeze()):
+        xn[i] = pairs_to_num(xi)
+    return xn

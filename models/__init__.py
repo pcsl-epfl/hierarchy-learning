@@ -28,6 +28,7 @@ def model_initialization(args, input_dim, ch):
             h=args.width,
             out_dim=num_outputs,
             batch_norm=args.batch_norm,
+            # bias=args.bias,
         )
     elif args.net == "cnn":
         net = ConvNetGAPMF(
