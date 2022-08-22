@@ -81,6 +81,7 @@ def features_to_data(features, m, num_classes, num_layers, samples_per_class, se
 
         # randomly choose sub-features
         # TODO: to avoid resampling, enumerate all subfeatures and only later randomize. Too large tensor for memory?
+        # (for the moment, this is solved by resampling + filtering unique samples.)
         random_features = np.random.choice(
             range(m), size=(samples_per_class * num_classes, 2 ** l)
         ).repeat(2 ** (num_layers - l - 1), 1)
@@ -106,6 +107,28 @@ def dec2bin(x, bits=None):
     mask = 2 ** torch.arange(bits - 1, -1, -1).to(x.device, x.dtype)
     return x.unsqueeze(-1).bitwise_and(mask).ne(0).float()
 
+def unique(x, dim=-1):
+    """Unique elements of x and indices of those unique elements
+    https://github.com/pytorch/pytorch/issues/36748#issuecomment-619514810
+
+    e.g.
+
+    unique(tensor([
+        [1, 2, 3],
+        [1, 2, 4],
+        [1, 2, 3],
+        [1, 2, 5]
+    ]), dim=0)
+    => (tensor([[1, 2, 3],
+                [1, 2, 4],
+                [1, 2, 5]]),
+        tensor([0, 1, 3]))
+    """
+    unique, inverse = torch.unique(x, return_inverse=True, dim=dim)
+    perm = torch.arange(inverse.size(dim), dtype=inverse.dtype, device=inverse.device)
+    inverse, perm = inverse.flip([dim]), perm.flip([dim])
+    return unique, inverse.new_empty(unique.size(dim)).scatter_(dim, inverse, perm)
+
 
 class HierarchicalDataset(Dataset):
     """
@@ -130,12 +153,20 @@ class HierarchicalDataset(Dataset):
         self.num_layers = num_layers
         self.num_classes = num_classes
 
+
+        samples_per_class = min(10 * m ** (2 ** num_layers - 1), 100000)
+
         features = hierarchical_features(
             num_features, num_layers, m, num_classes, seed=seed
         )
         self.x, self.targets = features_to_data(
-            features, m, num_classes, num_layers, samples_per_class=10000, seed=seed
+            features, m, num_classes, num_layers, samples_per_class=samples_per_class, seed=seed
         )
+
+        self.x, unique_indices = unique(self.x, dim=0)
+        self.targets = self.targets[unique_indices]
+
+        print(f"Data set size: {self.x.shape[0]}")
 
         if input_format == "binary":
             self.x = dec2bin(self.x)
