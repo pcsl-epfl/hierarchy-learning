@@ -20,6 +20,15 @@ def loss_func(args, o, y):
 
     return loss
 
+def regularize(loss, f, l):
+    """
+    add L1/L2 regularization to the loss.
+    :param loss: current loss
+    :param f: network function
+    :param args: parser arguments
+    """
+    for p in f.parameters():
+        loss += l * p.pow(2).mean()
 
 def measure_accuracy(args, out, targets, correct, total):
     """
@@ -49,11 +58,11 @@ def opt_algo(args, net):
 
     if args.optim == "sgd":
         optimizer = optim.SGD(
-            net.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay
+            net.parameters(), lr=args.lr * args.width, momentum=0.9
         )  ## 5e-4
     elif args.optim == "adam":
         optimizer = optim.Adam(
-            net.parameters(), lr=args.lr, weight_decay=args.weight_decay
+            net.parameters(), lr=args.lr * args.width
         )  ## 1e-5
     else:
         raise NameError("Specify a valid optimizer [Adam, (S)GD]")

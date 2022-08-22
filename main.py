@@ -11,7 +11,7 @@ import copy
 from functools import partial
 
 from init import init_fun
-from optim_loss import loss_func, opt_algo, measure_accuracy
+from optim_loss import loss_func, regularize, opt_algo, measure_accuracy
 
 
 def run(args):
@@ -116,10 +116,10 @@ def train(args, trainloader, net0, criterion):
             outputs = net(inputs)
 
             loss = criterion(outputs, targets)
+            train_loss += loss.detach().item()
+            regularize(loss, net, args.weight_decay)
             loss.backward()
             optimizer.step()
-
-            train_loss += loss.item()
 
             correct, total = measure_accuracy(args, outputs, targets, correct, total)
 
