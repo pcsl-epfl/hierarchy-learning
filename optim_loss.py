@@ -57,6 +57,19 @@ def opt_algo(args, net):
     args.lr = args.lr / args.alpha
 
     if args.optim == "sgd":
+        # if args.net == 'hlcn':
+        #     optimizer = optim.SGD([
+        #         {
+        #             "params": (p for n, p in net.named_parameters() if 'b' not in n and 'weight' not in n),
+        #             "lr": args.lr * args.width ** .5,
+        #         },
+        #         {
+        #             "params": (p for n, p in net.named_parameters() if 'b' in n or 'weight' in n),
+        #             "lr": args.lr * args.width,
+        #         },
+        #     ], lr=args.lr * args.width, momentum=0.9
+        # )
+        # else:
         optimizer = optim.SGD(
             net.parameters(), lr=args.lr * args.width, momentum=0.9
         )  ## 5e-4

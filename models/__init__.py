@@ -44,7 +44,7 @@ def model_initialization(args, input_dim, ch):
     elif args.net == "hlcn":
         net = LocallyHierarchicalNet(
             num_layers=int(math.log2(input_dim)),
-            input_ch=ch,
+            input_channels=ch,
             h=args.width,
             filter_size=args.filter_size,
             out_dim=num_outputs,
