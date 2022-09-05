@@ -1,4 +1,6 @@
-from .hierarchical import *
+import torch
+from .hierarchical import HierarchicalDataset
+
 
 def dataset_initialization(args):
     """
@@ -54,9 +56,4 @@ def dataset_initialization(args):
         perm = torch.randperm(P)
         trainset = torch.utils.data.Subset(trainset, perm[:args.ptr])
 
-    trainloader = torch.utils.data.DataLoader(
-        trainset, batch_size=args.batch_size, shuffle=True, num_workers=1)
-    testloader = torch.utils.data.DataLoader(
-        testset, batch_size=100, shuffle=False, num_workers=1)
-
-    return trainloader, testloader, input_dim, ch
+    return trainset, testset, input_dim, ch

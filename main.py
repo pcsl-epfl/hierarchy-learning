@@ -284,9 +284,9 @@ def main():
     if args.num_classes == -1:
         args.num_classes = args.num_features
     if args.ptr <= 1:
-        args.ptr = int(
-            args.ptr * args.m ** (2 ** args.num_layers - 1) * args.num_classes
-        )
+        Pmax = args.m ** (2 ** args.num_layers - 1) * args.num_classes
+        args.ptr = int(args.ptr * Pmax)
+        args.pte = min(Pmax - args.ptr, args.pte)
     else:
         args.ptr = int(args.ptr)
 
