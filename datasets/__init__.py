@@ -51,9 +51,8 @@ def dataset_initialization(args):
         testset.targets = 2 * (torch.as_tensor(testset.targets) >= nc // 2) - 1
 
     P = len(trainset)
-    if args.ptr:
-        # take random subset of training set
-        perm = torch.randperm(P)
-        trainset = torch.utils.data.Subset(trainset, perm[:args.ptr])
+    # take random subset of training set
+    perm = torch.randperm(P)
+    trainset = torch.utils.data.Subset(trainset, perm[:args.ptr])
 
     return trainset, testset, input_dim, ch
