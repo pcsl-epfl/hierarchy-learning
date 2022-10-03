@@ -283,6 +283,8 @@ def main():
         args.seed_net = args.seed_init
     if args.num_classes == -1:
         args.num_classes = args.num_features
+    if args.net_layers == -1:
+        args.net_layers = args.num_layers
     if args.ptr <= 1:
         Pmax = args.m ** (2 ** args.num_layers - 1) * args.num_classes
         args.ptr = int(args.ptr * Pmax)
