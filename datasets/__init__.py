@@ -51,6 +51,7 @@ def dataset_initialization(args):
         testset.targets = 2 * (torch.as_tensor(testset.targets) >= nc // 2) - 1
 
     P = len(trainset)
+    assert P >= args.ptr, "ptr is too large given the memory constraints!!"
     # take random subset of training set
     perm = torch.randperm(P)
     trainset = torch.utils.data.Subset(trainset, perm[:args.ptr])

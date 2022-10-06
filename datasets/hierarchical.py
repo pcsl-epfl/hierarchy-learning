@@ -152,9 +152,10 @@ class HierarchicalDataset(Dataset):
         self.m = m  # features multiplicity
         self.num_layers = num_layers
         self.num_classes = num_classes
+        Pmax = m ** (2 ** num_layers - 1) * num_classes
 
 
-        samples_per_class = min(10 * m ** (2 ** num_layers - 1), 500000)
+        samples_per_class = min(5 * Pmax, int(5e5)) # constrain dataset size for memory budget
 
         features = hierarchical_features(
             num_features, num_layers, m, num_classes, seed=seed
@@ -182,7 +183,7 @@ class HierarchicalDataset(Dataset):
             raise ValueError
 
         if testsize == -1:
-            testsize = len(self.x) // 5
+            testsize = min(len(self.x) // 5, 100000)
 
         P = torch.randperm(len(self.targets))
         if train:
