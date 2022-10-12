@@ -20,7 +20,7 @@ def loss_func(args, o, y):
 
     return loss
 
-def regularize(loss, f, l):
+def regularize(loss, f, l, reg_type):
     """
     add L1/L2 regularization to the loss.
     :param loss: current loss
@@ -28,7 +28,10 @@ def regularize(loss, f, l):
     :param args: parser arguments
     """
     for p in f.parameters():
-        loss += l * p.pow(2).mean()
+        if reg_type == 'l1':
+            loss += l * p.abs().mean()
+        elif reg_type == 'l2':
+            loss += l * p.pow(2).mean()
 
 def measure_accuracy(args, out, targets, correct, total):
     """

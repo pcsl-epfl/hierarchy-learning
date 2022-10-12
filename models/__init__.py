@@ -50,6 +50,12 @@ def model_initialization(args, input_dim, ch):
             out_dim=num_outputs,
             bias=args.bias,
         )
+    elif args.net == "cnn2":
+        net = ConvNet2L(
+            n=ch,
+            h=args.width,
+            out_dim=num_outputs
+        )
 
     assert net is not None, "Network architecture not in the list!"
 

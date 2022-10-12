@@ -72,7 +72,7 @@ def run(args):
                 "best": best,
             }
             yield out
-        if losstr == 0:
+        if (losstr == 0 and args.loss == 'hinge') or (losstr < 0.01 and args.loss == 'cross_entropy'):
             trloss_flag += 1
             if trloss_flag >= args.zero_loss_epochs:
                 break
@@ -117,7 +117,7 @@ def train(args, trainloader, net0, criterion):
 
             loss = criterion(outputs, targets)
             train_loss += loss.detach().item()
-            regularize(loss, net, args.weight_decay)
+            regularize(loss, net, args.weight_decay, reg_type=args.reg_type)
             loss.backward()
             optimizer.step()
 
@@ -252,6 +252,7 @@ def main():
 
     parser.add_argument("--lr", default=0.1, type=float, help="learning rate")
     parser.add_argument("--weight_decay", default=5e-4, type=float)
+    parser.add_argument("--reg_type", default='l2', type=str)
     parser.add_argument("--epochs", type=int, default=250)
     parser.add_argument("--zero_loss_epochs", type=int, default=0)
     parser.add_argument("--rescale_epochs", type=int, default=0)
@@ -285,12 +286,25 @@ def main():
         args.num_classes = args.num_features
     if args.net_layers == -1:
         args.net_layers = args.num_layers
-    if args.ptr <= 1:
-        Pmax = args.m ** (2 ** args.num_layers - 1) * args.num_classes
-        args.ptr = int(args.ptr * Pmax)
-        args.pte = min(Pmax - args.ptr, args.pte)
+    if args.m == -1:
+        args.m = args.num_features
+
+    if args.ptr >= 0:
+        if args.ptr <= 1:
+            Pmax = args.m ** (2 ** args.num_layers - 1) * args.num_classes
+            args.ptr = int(args.ptr * Pmax)
+            args.pte = min(Pmax - args.ptr, args.pte)
+        else:
+            args.ptr = int(args.ptr)
+        assert args.ptr > 0, "relative dataset size (P/Pmax) too small for such dataset!"
     else:
-        args.ptr = int(args.ptr)
+        def boo(k, m, n, L):
+            return math.log2(m) * (L - k + 2 ** k - 1) - math.log2(n) * 2 ** k
+        def mscaling(k, m, L):
+            return m ** (L - k + 2 ** k - 1)
+        from scipy.optimize import fsolve
+        k = fsolve(boo, 2, args=(args.m, args.num_features, args.num_layers))[0]
+        args.ptr = int(- args.ptr * mscaling(k, args.m, args.num_layers))
 
     with open(args.output, "wb") as handle:
         pickle.dump(args, handle)

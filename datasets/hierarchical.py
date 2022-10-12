@@ -155,7 +155,7 @@ class HierarchicalDataset(Dataset):
         Pmax = m ** (2 ** num_layers - 1) * num_classes
 
 
-        samples_per_class = min(5 * Pmax, int(5e5)) # constrain dataset size for memory budget
+        samples_per_class = min(10 * Pmax, int(5e5)) # constrain dataset size for memory budget
 
         features = hierarchical_features(
             num_features, num_layers, m, num_classes, seed=seed

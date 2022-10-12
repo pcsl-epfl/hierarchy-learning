@@ -96,3 +96,25 @@ class ConvNetGAPMF(nn.Module):
         y = y @ self.beta / self.beta.size(0)
 
         return y.squeeze()
+
+class ConvNet2L(nn.Module):
+    """
+    Convolutional neural network, see meeting of 10.10.22
+    """
+
+    def __init__(
+        self, n, h, out_dim
+    ):
+        super().__init__()
+        self.conv1 = ConvBlockNT(n, h, filter_size=2, stride=2, pbc=0)
+        self.conv2 = ConvBlockNT(h, n, filter_size=1, stride=1, pbc=0)
+        self.beta = nn.Parameter(torch.randn(2 * n, out_dim))
+
+    def forward(self, x):
+
+        y = self.conv1(x).relu()
+        y = self.conv2(y).relu()
+        y = y.flatten(1)
+        y = y @ self.beta / self.beta.size(0)
+
+        return y.squeeze()
