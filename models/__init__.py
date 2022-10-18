@@ -16,8 +16,7 @@ def model_initialization(args, input_dim, ch):
     num_outputs = 1 if args.loss == "hinge" else args.num_classes
 
     ### Define network architecture ###
-    if args.seed_net != -1:
-        torch.manual_seed(args.seed_net)
+    torch.manual_seed(args.seed_net)
 
     net = None
 

@@ -198,7 +198,7 @@ def main():
     ### Seeds ###
     parser.add_argument("--seed_init", type=int, default=0)
     parser.add_argument("--seed_net", type=int, default=-1)
-    parser.add_argument("--seed_data", type=int, default=-1)
+    parser.add_argument("--seed_trainset", type=int, default=-1)
 
     ### DATASET ARGS ###
     parser.add_argument("--dataset", type=str, required=True)
@@ -234,12 +234,6 @@ def main():
     parser.add_argument("--stride", type=int, default=2)
     parser.add_argument("--dropout", type=float, default=0)
     parser.add_argument("--batch_norm", type=int, default=0)
-    parser.add_argument(
-        "--param_list",
-        type=int,
-        default=0,
-        help="Make parameters list for NTK calculation",
-    )
     parser.add_argument(
         "--bias", type=int, default=1, help="for some archs, controls bias presence"
     )
@@ -279,8 +273,8 @@ def main():
         ), "either `pickle` or `output` must be given to the parser!!"
         args.pickle = args.output
 
-    if args.seed_data == -1:
-        args.seed_data = args.seed_init
+    if args.seed_trainset == -1:
+        args.seed_trainset = args.seed_init
     if args.seed_net == -1:
         args.seed_net = args.seed_init
     if args.num_classes == -1:

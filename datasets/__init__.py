@@ -11,9 +11,6 @@ def dataset_initialization(args):
 
     nc = args.num_classes
 
-    if args.seed_data != -1:
-        torch.manual_seed(args.seed_data)
-
     if args.dataset == 'hier1':
         trainset = HierarchicalDataset(
             num_features=args.num_features,
@@ -21,7 +18,7 @@ def dataset_initialization(args):
             num_layers=args.num_layers,
             num_classes=nc,
             input_format=args.input_format,
-            seed=args.seed_data,
+            seed=args.seed_init,
             train=True,
             transform=None,
             testsize=args.pte
@@ -33,7 +30,7 @@ def dataset_initialization(args):
             num_layers=args.num_layers,
             num_classes=nc,
             input_format=args.input_format,
-            seed=args.seed_data,
+            seed=args.seed_init,
             train=False,
             transform=None,
             testsize=args.pte
@@ -52,8 +49,9 @@ def dataset_initialization(args):
 
     P = len(trainset)
     assert args.ptr <= 32 + P, "ptr is too large!!"
-    # assert P >= args.ptr, "ptr is too large given the memory constraints!!"
+
     # take random subset of training set
+    torch.manual_seed(args.seed_trainset)
     perm = torch.randperm(P)
     trainset = torch.utils.data.Subset(trainset, perm[:args.ptr])
 
