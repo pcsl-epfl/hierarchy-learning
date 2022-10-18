@@ -72,7 +72,7 @@ def run(args):
                 "best": best,
             }
             yield out
-        if (losstr == 0 and args.loss == 'hinge') or (losstr < 0.01 and args.loss == 'cross_entropy'):
+        if (losstr == 0 and args.loss == 'hinge') or (losstr < args.zero_loss_threshold and args.loss == 'cross_entropy'):
             trloss_flag += 1
             if trloss_flag >= args.zero_loss_epochs:
                 break
@@ -255,6 +255,7 @@ def main():
     parser.add_argument("--reg_type", default='l2', type=str)
     parser.add_argument("--epochs", type=int, default=250)
     parser.add_argument("--zero_loss_epochs", type=int, default=0)
+    parser.add_argument("--zero_loss_threshold", type=float, default=0.01)
     parser.add_argument("--rescale_epochs", type=int, default=0)
 
     parser.add_argument(
