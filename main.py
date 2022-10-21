@@ -243,8 +243,8 @@ def main():
     parser.add_argument("--loss", type=str, default="cross_entropy")
     parser.add_argument("--optim", type=str, default="sgd")
     parser.add_argument("--scheduler", type=str, default="cosineannealing")
-
     parser.add_argument("--lr", default=0.1, type=float, help="learning rate")
+    parser.add_argument("--momentum", default=0.9, type=float, help="momentum")
     parser.add_argument("--weight_decay", default=5e-4, type=float)
     parser.add_argument("--reg_type", default='l2', type=str)
     parser.add_argument("--epochs", type=int, default=250)

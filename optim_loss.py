@@ -74,7 +74,7 @@ def opt_algo(args, net):
         # )
         # else:
         optimizer = optim.SGD(
-            net.parameters(), lr=args.lr * args.width, momentum=0.9
+            net.parameters(), lr=args.lr * args.width, momentum=args.momentum
         )  ## 5e-4
     elif args.optim == "adam":
         optimizer = optim.Adam(
