@@ -33,40 +33,40 @@ class ConvBlockNT(nn.Module):
         return x
 
 
-class ConvBlockSD(nn.Module):
-    """
-    Convolutional block with standard torch initialization
-    """
-
-    def __init__(
-        self, input_ch, h, filter_size, stride, pbc, bias=True, batch_norm=False
-    ):
-
-        super().__init__()
-        self.conv = nn.Conv1d(
-            in_channels=input_ch,
-            out_channels=h,
-            kernel_size=filter_size,
-            stride=stride,
-            bias=bias,
-        )
-        if batch_norm:
-            self.bn = nn.BatchNorm1d(num_features=h)
-        self.batch_norm = batch_norm
-        self.filter_size = filter_size
-        self.pbc = pbc
-
-    def forward(self, x):
-
-        if self.pbc:
-            pool_size = int((self.filter_size - 1) / 2.0)
-            x = F.pad(x, (pool_size, pool_size), mode="circular")
-        x = self.conv(x)
-        x = x.relu()
-        if self.batch_norm:
-            x = self.bn(x)
-
-        return x
+# class ConvBlockSD(nn.Module):
+#     """
+#     Convolutional block with standard torch initialization
+#     """
+#
+#     def __init__(
+#         self, input_ch, h, filter_size, stride, pbc, bias=True, batch_norm=False
+#     ):
+#
+#         super().__init__()
+#         self.conv = nn.Conv1d(
+#             in_channels=input_ch,
+#             out_channels=h,
+#             kernel_size=filter_size,
+#             stride=stride,
+#             bias=bias,
+#         )
+#         if batch_norm:
+#             self.bn = nn.BatchNorm1d(num_features=h)
+#         self.batch_norm = batch_norm
+#         self.filter_size = filter_size
+#         self.pbc = pbc
+#
+#     def forward(self, x):
+#
+#         if self.pbc:
+#             pool_size = int((self.filter_size - 1) / 2.0)
+#             x = F.pad(x, (pool_size, pool_size), mode="circular")
+#         x = self.conv(x)
+#         x = x.relu()
+#         if self.batch_norm:
+#             x = self.bn(x)
+#
+#         return x
 
 
 class ConvNetGAPMF(nn.Module):
@@ -99,7 +99,7 @@ class ConvNetGAPMF(nn.Module):
 
 class ConvNet2L(nn.Module):
     """
-    Convolutional neural network, see meeting of 10.10.22
+    Convolutional neural network with bottleneck, see meeting of 10.10.22
     """
 
     def __init__(

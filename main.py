@@ -208,7 +208,7 @@ def main():
         default=0.8,
         help="Number of training point. If in [0, 1], fraction of training points w.r.t. total.",
     )
-    parser.add_argument("--pte", type=int, default=5000)
+    parser.add_argument("--pte", type=float, default=.2)
     parser.add_argument("--batch_size", type=int, default=128)
     parser.add_argument("--scale_batch_size", type=int, default=0)
 
@@ -284,9 +284,13 @@ def main():
     if args.m == -1:
         args.m = args.num_features
 
+    Pmax = args.m ** (2 ** args.num_layers - 1) * args.num_classes
+    if 0 < args.pte <= 1:
+        args.pte = int(args.pte * Pmax)
+    else:
+        args.pte = int(args.pte)
     if args.ptr >= 0:
         if args.ptr <= 1:
-            Pmax = args.m ** (2 ** args.num_layers - 1) * args.num_classes
             args.ptr = int(args.ptr * Pmax)
             args.pte = min(Pmax - args.ptr, args.pte)
         else:
