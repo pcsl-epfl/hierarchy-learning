@@ -173,7 +173,7 @@ class HierarchicalDataset(Dataset):
             self.x = dec2bin(self.x)
             self.x = self.x.permute(0, 2, 1)
         elif input_format == "decimal":
-            self.x = (self.x[:, None] + 1) / num_features
+            self.x = ((self.x[:, None] + 1) / num_features - 1) * 2
         elif "onehot" in input_format:
             if input_format == "onehot_pairs":
                 self.x = pairing_features(self.x)
@@ -192,6 +192,8 @@ class HierarchicalDataset(Dataset):
             P = P[-testsize:]
 
         self.x, self.targets = self.x[P], self.targets[P]
+
+        # TODO: multiply x by sqrt(ch) so that on average each pixels is of order 1
 
         self.transform = transform
 
