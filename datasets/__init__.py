@@ -1,5 +1,6 @@
 import torch
 from .hierarchical import HierarchicalDataset
+from .parity import ParityDataset
 
 
 def dataset_initialization(args):
@@ -35,6 +36,25 @@ def dataset_initialization(args):
             transform=None,
             testsize=args.pte
         )
+
+    elif args.dataset == 'parity':
+
+        trainset = ParityDataset(
+            num_layers=args.num_layers,
+            seed=args.seed_init,
+            train=True,
+            transform=None,
+            testsize=args.pte
+        )
+
+        testset = ParityDataset(
+            num_layers=args.num_layers,
+            seed=args.seed_init,
+            train=False,
+            transform=None,
+            testsize=args.pte
+        )
+
 
     else:
         raise ValueError('`dataset` argument is invalid!')
