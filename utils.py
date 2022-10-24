@@ -1,6 +1,7 @@
 import math
 import numpy as np
 import matplotlib.pyplot as plt
+from copy import deepcopy
 
 def plot_std(x, std, c='C0', alpha=.3):
     log10e = math.log10(math.exp(1))
@@ -30,3 +31,7 @@ def format_time(elapsed_time):
     elapsed_time.append(f'{s:02}s')
 
     return ''.join(elapsed_time)
+
+
+def cpu_state_dict(f):
+    return {k: deepcopy(f.state_dict()[k].cpu()) for k in f.state_dict()}

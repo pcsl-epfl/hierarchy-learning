@@ -12,7 +12,7 @@ from functools import partial
 
 from init import init_fun
 from optim_loss import loss_func, regularize, opt_algo, measure_accuracy
-
+from utils import cpu_state_dict
 
 def run(args):
 
@@ -26,7 +26,7 @@ def run(args):
         args.batch_size = args.ptr // 2
 
     if args.save_dynamics:
-        dynamics = [{"acc": 0.0, "epoch": -1, "net": copy.deepcopy(net0.state_dict())}]
+        dynamics = [{"acc": 0.0, "epoch": -1, "net": cpu_state_dict(net0)}]
     else:
         dynamics = None
 
@@ -54,13 +54,13 @@ def run(args):
         ):
             # save dynamics at 30 log-spaced points in time
             dynamics.append(
-                {"acc": acc, "epoch": epoch, "net": copy.deepcopy(net.state_dict())}
+                {"acc": acc, "epoch": epoch, "net": cpu_state_dict(net)}
             )
         if acc > best_acc:
             best["acc"] = acc
             best["epoch"] = epoch
             if args.save_best_net:
-                best["net"] = copy.deepcopy(net.state_dict())
+                best["net"] = cpu_state_dict(net)
             # if args.save_dynamics:
             #     dynamics.append(best)
             best_acc = acc
@@ -88,9 +88,9 @@ def run(args):
         "train loss": loss,
         "terr": terr,
         "dynamics": dynamics,
-        "init": copy.deepcopy(net0.state_dict()) if args.save_init_net else None,
+        "init": cpu_state_dict(net0) if args.save_init_net else None,
         "best": best,
-        "last": copy.deepcopy(net.state_dict()) if args.save_last_net else None,
+        "last": cpu_state_dict(net) if args.save_last_net else None,
         "weight_evo": wo,
     }
     yield out
@@ -202,10 +202,7 @@ def main():
 
     ### DATASET ARGS ###
     parser.add_argument("--dataset", type=str, required=True)
-    parser.add_argument(
-        "--ptr",
-        type=float,
-        default=0.8,
+    parser.add_argument("--ptr", type=float, default=0.8,
         help="Number of training point. If in [0, 1], fraction of training points w.r.t. total.",
     )
     parser.add_argument("--pte", type=float, default=.2)
@@ -214,7 +211,7 @@ def main():
 
     parser.add_argument("--background_noise", type=float, default=0)
 
-    # hierarchical #
+    # Hierarchical dataset #
     parser.add_argument("--num_features", type=int, default=8)
     parser.add_argument("--m", type=int, default=2)
     parser.add_argument("--num_layers", type=int, default=2)
@@ -228,15 +225,12 @@ def main():
     ## Nets params ##
     parser.add_argument("--width", type=int, default=64)
     parser.add_argument("--net_layers", type=int, default=3)
-    parser.add_argument("--width_factor", type=float, default=1.0)
     parser.add_argument("--filter_size", type=int, default=2)
     parser.add_argument("--pooling_size", type=int, default=2)
     parser.add_argument("--stride", type=int, default=2)
     parser.add_argument("--dropout", type=float, default=0)
     parser.add_argument("--batch_norm", type=int, default=0)
-    parser.add_argument(
-        "--bias", type=int, default=1, help="for some archs, controls bias presence"
-    )
+    parser.add_argument("--bias", type=int, default=1, help="for some archs, controls bias presence")
     parser.add_argument("--pbc", type=int, default=0, help="periodic boundaries cnn")
 
     ### ALGORITHM ARGS ###

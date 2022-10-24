@@ -4,7 +4,7 @@ from .utils import unique
 
 class ParityDataset(Dataset):
     """
-    Parity dataset.
+        Parity dataset.
     """
 
     def __init__(
@@ -24,7 +24,7 @@ class ParityDataset(Dataset):
         samples_per_class = min(10 * Pmax, int(5e5)) # constrain dataset size for memory budget
 
         self.x = torch.randint(2, size=(int(2 * samples_per_class), self.input_size)) * 2. - 1
-        self.targets = self.x.prod(dim=1).eq(1) * 1.
+        self.targets = self.x.prod(dim=1).eq(1).long()
 
         self.x, unique_indices = unique(self.x, dim=0)
         self.targets = self.targets[unique_indices]

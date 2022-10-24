@@ -82,7 +82,7 @@ def features_to_data(features, m, num_classes, num_layers, samples_per_class, se
             indices.append(left_right)
 
         # randomly choose sub-features
-        # TODO: to avoid resampling, enumerate all subfeatures and only later randomize. Too large tensor for memory?
+        # TODO: to avoid resampling, enumerate all subfeatures and only later randomize. Too large tensor for memory though.
         # (for the moment, this is solved by resampling + filtering unique samples.)
         random_features = np.random.choice(
             range(m), size=(samples_per_class * num_classes, 2 ** l)

@@ -39,6 +39,8 @@ def dataset_initialization(args):
 
     elif args.dataset == 'parity':
 
+        assert args.num_classes == 2, "Simple parity can only have two classes!!"
+
         trainset = ParityDataset(
             num_layers=args.num_layers,
             seed=args.seed_init,
