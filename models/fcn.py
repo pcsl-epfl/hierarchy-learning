@@ -25,13 +25,18 @@ class DenseBlock(nn.Module):
     def forward(self, x):
         x = torch.flatten(x, start_dim=1)
         input_dim = x.size(1)
+        scale = input_dim if self.last else input_dim ** 0.5
+
         if self.b is None:
-            y = x @ self.w
+            y = x @ self.w / scale
         else:
-            y = x @ self.w + self.b
+            y = x @ self.w / scale + self.b * 0.1
+            
         if self.dropout is not None:
             y = self.dropout(y)
-        y = y.squeeze().div(input_dim) if self.last else y.relu().div(input_dim ** 0.5)
+
+        y = y.squeeze() if self.last else y.relu()
+
         if self.batch_norm is not None:
             y = self.batch_norm(y)
         return y
