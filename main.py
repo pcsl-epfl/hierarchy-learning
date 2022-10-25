@@ -217,6 +217,7 @@ def main():
     parser.add_argument("--num_layers", type=int, default=2)
     parser.add_argument("--num_classes", type=int, default=-1)
     parser.add_argument("--input_format", type=str, default="onehot")
+    parser.add_argument("--whitening", type=int, default=0)
 
     ### ARCHITECTURES ARGS ###
     parser.add_argument("--net", type=str, required=True)

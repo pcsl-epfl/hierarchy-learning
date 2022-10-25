@@ -110,6 +110,7 @@ class HierarchicalDataset(Dataset):
         seed=0,
         train=True,
         input_format=0,
+        whitening=0,
         transform=None,
         testsize=-1,
     ):
@@ -162,6 +163,7 @@ class HierarchicalDataset(Dataset):
         # TODO: multiply x by sqrt(ch) so that on average each pixels is of order 1
 
         self.transform = transform
+        self.whitening = whitening
 
     def __len__(self):
         return len(self.targets)
@@ -173,6 +175,10 @@ class HierarchicalDataset(Dataset):
         """
 
         x, y = self.x[idx], self.targets[idx]
+
+        if self.whitening:
+            inv_sqrt_n = (self.num_features - 1) ** -.5
+            x = x * (1 + inv_sqrt_n) - inv_sqrt_n
 
         if self.transform:
             x = self.transform(x)

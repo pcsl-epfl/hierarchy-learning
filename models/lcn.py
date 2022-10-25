@@ -33,7 +33,7 @@ class LocallyConnected1d(nn.Module):
         # Sum in in_channel and kernel_size dims
         out = (x.unsqueeze(1) * self.weight).sum([2, -1]) # .div(self.input_channels ** .5)
         if self.bias is not None:
-            out += self.bias
+            out += self.bias * 0.1
         return out
 
 

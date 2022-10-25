@@ -31,7 +31,7 @@ class DenseBlock(nn.Module):
             y = x @ self.w / scale
         else:
             y = x @ self.w / scale + self.b * 0.1
-            
+
         if self.dropout is not None:
             y = self.dropout(y)
 
