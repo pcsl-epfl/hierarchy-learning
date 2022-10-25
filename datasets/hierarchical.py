@@ -160,10 +160,11 @@ class HierarchicalDataset(Dataset):
 
         self.x, self.targets = self.x[P], self.targets[P]
 
-        # TODO: multiply x by sqrt(ch) so that on average each pixels is of order 1
+        if whitening:
+            inv_sqrt_n = (num_features - 1) ** -.5
+            self.x = self.x * (1 + inv_sqrt_n) - inv_sqrt_n
 
         self.transform = transform
-        self.whitening = whitening
 
     def __len__(self):
         return len(self.targets)
@@ -175,10 +176,6 @@ class HierarchicalDataset(Dataset):
         """
 
         x, y = self.x[idx], self.targets[idx]
-
-        if self.whitening:
-            inv_sqrt_n = (self.num_features - 1) ** -.5
-            x = x * (1 + inv_sqrt_n) - inv_sqrt_n
 
         if self.transform:
             x = self.transform(x)

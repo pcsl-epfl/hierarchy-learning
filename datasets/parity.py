@@ -44,8 +44,6 @@ class ParityDataset(Dataset):
 
         self.x, self.targets = self.x[P], self.targets[P]
 
-        # TODO: multiply x by sqrt(ch) so that on average each pixels is of order 1
-
         self.transform = transform
 
     def __len__(self):
