@@ -68,6 +68,7 @@ def run(args):
             out = {
                 "args": args,
                 "train loss": loss,
+                "terr": terr,
                 "dynamics": dynamics,
                 "best": best,
             }
@@ -124,11 +125,13 @@ def train(args, trainloader, net0, criterion):
             correct, total = measure_accuracy(args, outputs, targets, correct, total)
 
         avg_epoch_time = (time.time() - start_time) / (epoch + 1)
-        print(
-            f"[Train epoch {epoch+1} / {args.epochs}, {print_time(avg_epoch_time)}/epoch, ETA: {print_time(avg_epoch_time * (args.epochs - epoch - 1))}]"
-            f"[tr.Loss: {train_loss * args.alpha / (batch_idx + 1):.03f}]"
-            f"[tr.Acc: {100.*correct/total:.03f}, {correct} / {total}]"
-        )
+
+        if epoch % 10 == 0:
+            print(
+                f"[Train epoch {epoch+1} / {args.epochs}, {print_time(avg_epoch_time)}/epoch, ETA: {print_time(avg_epoch_time * (args.epochs - epoch - 1))}]"
+                f"[tr.Loss: {train_loss * args.alpha / (batch_idx + 1):.03f}]"
+                f"[tr.Acc: {100.*correct/total:.03f}, {correct} / {total}]"
+            )
 
         scheduler.step()
 
@@ -218,6 +221,7 @@ def main():
     parser.add_argument("--num_classes", type=int, default=-1)
     parser.add_argument("--input_format", type=str, default="onehot")
     parser.add_argument("--whitening", type=int, default=0)
+    parser.add_argument("--auto_regression", type=int, default=0)
 
     ### ARCHITECTURES ARGS ###
     parser.add_argument("--net", type=str, required=True)
@@ -233,6 +237,10 @@ def main():
     parser.add_argument("--batch_norm", type=int, default=0)
     parser.add_argument("--bias", type=int, default=1, help="for some archs, controls bias presence")
     parser.add_argument("--pbc", type=int, default=0, help="periodic boundaries cnn")
+
+    ## Auto-regression with Transformers ##
+    parser.add_argument("--pmask", type=float, default=.2)
+
 
     ### ALGORITHM ARGS ###
     parser.add_argument("--loss", type=str, default="cross_entropy")
@@ -268,6 +276,7 @@ def main():
         ), "either `pickle` or `output` must be given to the parser!!"
         args.pickle = args.output
 
+    # special value -1 to set some equal arguments
     if args.seed_trainset == -1:
         args.seed_trainset = args.seed_init
     if args.seed_net == -1:
@@ -279,6 +288,7 @@ def main():
     if args.m == -1:
         args.m = args.num_features
 
+    # define train and test sets sizes
     Pmax = args.m ** (2 ** args.num_layers - 1) * args.num_classes
     if 0 < args.pte <= 1:
         args.pte = int(args.pte * Pmax)
@@ -292,13 +302,14 @@ def main():
             args.ptr = int(args.ptr)
         assert args.ptr > 0, "relative dataset size (P/Pmax) too small for such dataset!"
     else:
-        def boo(k, m, n, L):
-            return math.log2(m) * (L - k + 2 ** k - 1) - math.log2(n) * 2 ** k
-        def mscaling(k, m, L):
-            return m ** (L - k + 2 ** k - 1)
-        from scipy.optimize import fsolve
-        k = fsolve(boo, 2, args=(args.m, args.num_features, args.num_layers))[0]
-        args.ptr = int(- args.ptr * mscaling(k, args.m, args.num_layers))
+        # def boo(k, m, n, L):
+        #     return math.log2(m) * (L - k + 2 ** k - 1) - math.log2(n) * 2 ** k
+        # def mscaling(k, m, L):
+        #     return m ** (L - k + 2 ** k - 1)
+        # from scipy.optimize import fsolve
+        # k = fsolve(boo, 2, args=(args.m, args.num_features, args.num_layers))[0]
+        # args.ptr = int(- args.ptr * mscaling(k, args.m, args.num_layers))
+        args.ptr = int(- args.ptr * args.m ** (args.num_layers + 1))
 
     with open(args.output, "wb") as handle:
         pickle.dump(args, handle)

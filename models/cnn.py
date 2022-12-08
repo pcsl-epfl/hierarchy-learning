@@ -24,6 +24,9 @@ class ConvBlockNT(nn.Module):
         if self.pbc:
             pool_size = (self.w.size(-1) - 1) // 2
             x = F.pad(x, (pool_size, pool_size), mode="circular")
+        if self.w.size(-1) == x.size(-1):
+            x = F.pad(x, (0, self.w.size(-1) - self.stride), mode="circular")
+
         h = self.w[0].numel()
         x = F.conv1d(
             x, self.w / h ** 0.5, bias=self.b * 0.1, stride=self.stride  # / h ** .5,
@@ -80,11 +83,20 @@ class ConvNetGAPMF(nn.Module):
     ):
 
         super().__init__()
+
+        # allow for weight sharing without
+        def _filter_size(l):
+            if filter_size > 0:
+                return filter_size
+            else:
+                assert stride == 2, "Stride must be two for using `filter_size = 2 ** l`"
+                return 2 ** l
+
         self.conv = nn.Sequential(
-            ConvBlockNT(input_ch, h, filter_size, stride, pbc, batch_norm=batch_norm),
+            ConvBlockNT(input_ch, h, _filter_size(n_blocks), stride, pbc, batch_norm=batch_norm),
             *[
-                ConvBlockNT(h, h, filter_size, stride, pbc, batch_norm=batch_norm)
-                for _ in range(n_blocks - 1)
+                ConvBlockNT(h, h, _filter_size(l), stride, pbc, batch_norm=batch_norm)
+                for l in range(n_blocks - 1, 0, -1)
             ]
         )
         self.beta = nn.Parameter(torch.randn(h, out_dim))

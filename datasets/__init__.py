@@ -12,6 +12,25 @@ def dataset_initialization(args):
 
     nc = args.num_classes
 
+    transform = None
+    if args.auto_regression:
+        # def transform(x, y):
+        #     return x[:-1], x[1:]
+        print('BERT mode')
+        def transform(x, _):
+            """ BERT-like masking. """
+            idx = torch.randint(2 ** args.num_layers, (1,))[0]
+            p = torch.rand(1)[0]
+            y = torch.tensor([idx, x[idx]])
+            x = x.clone()
+            if p > .2:
+                x[idx] = 0
+            elif .1 < p < .2:
+                x[idx] = torch.randint(args.num_features, (1,))[0]
+            return x.contiguous(), y
+            # mask = torch.rand((len(x),)) > args.pmask
+            # return x * mask, x
+
     if args.dataset == 'hier1':
         trainset = HierarchicalDataset(
             num_features=args.num_features,
@@ -22,7 +41,7 @@ def dataset_initialization(args):
             whitening=args.whitening,
             seed=args.seed_init,
             train=True,
-            transform=None,
+            transform=transform,
             testsize=args.pte
         )
 
@@ -35,7 +54,7 @@ def dataset_initialization(args):
             whitening=args.whitening,
             seed=args.seed_init,
             train=False,
-            transform=None,
+            transform=transform,
             testsize=args.pte
         )
 
@@ -47,7 +66,7 @@ def dataset_initialization(args):
             num_layers=args.num_layers,
             seed=args.seed_init,
             train=True,
-            transform=None,
+            transform=transform,
             testsize=args.pte
         )
 
@@ -55,7 +74,7 @@ def dataset_initialization(args):
             num_layers=args.num_layers,
             seed=args.seed_init,
             train=False,
-            transform=None,
+            transform=transform,
             testsize=args.pte
         )
 
@@ -64,7 +83,7 @@ def dataset_initialization(args):
         raise ValueError('`dataset` argument is invalid!')
 
     input_dim = trainset[0][0].shape[-1]
-    ch = trainset[0][0].shape[-2]
+    ch = trainset[0][0].shape[-2] if args.input_format != 'long' else 0
 
     if args.loss == 'hinge':
         # change to binary labels

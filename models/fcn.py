@@ -3,9 +3,7 @@ from torch import nn
 
 
 class DenseBlock(nn.Module):
-    def __init__(
-        self, input_dim, h, last=False, dropout=False, batch_norm=False, bias=True
-    ):
+    def __init__(self, input_dim, h, last=False, dropout=False, batch_norm=False, bias=True):
         super().__init__()
         self.w = nn.Parameter(torch.randn(input_dim, h))
         if bias:

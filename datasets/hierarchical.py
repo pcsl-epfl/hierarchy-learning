@@ -113,7 +113,9 @@ class HierarchicalDataset(Dataset):
         whitening=0,
         transform=None,
         testsize=-1,
+        memory_constraint=5e5
     ):
+        assert testsize or train, "testsize must be larger than zero when generating a test set!"
         torch.manual_seed(seed)
         self.num_features = num_features
         self.m = m  # features multiplicity
@@ -122,7 +124,7 @@ class HierarchicalDataset(Dataset):
         Pmax = m ** (2 ** num_layers - 1) * num_classes
 
 
-        samples_per_class = min(10 * Pmax, int(5e5)) # constrain dataset size for memory budget
+        samples_per_class = min(10 * Pmax, int(memory_constraint)) # constrain dataset size for memory budget
 
         features = hierarchical_features(
             num_features, num_layers, m, num_classes, seed=seed
@@ -139,6 +141,8 @@ class HierarchicalDataset(Dataset):
         if input_format == "binary":
             self.x = dec2bin(self.x)
             self.x = self.x.permute(0, 2, 1)
+        elif input_format == "long":
+            self.x = self.x.long() + 1
         elif input_format == "decimal":
             self.x = ((self.x[:, None] + 1) / num_features - 1) * 2
         elif "onehot" in input_format:
@@ -150,10 +154,10 @@ class HierarchicalDataset(Dataset):
             raise ValueError
 
         if testsize == -1:
-            testsize = min(len(self.x) // 5, 100000)
+            testsize = min(len(self.x) // 5, 20000)
 
         P = torch.randperm(len(self.targets))
-        if train:
+        if train and testsize:
             P = P[:-testsize]
         else:
             P = P[-testsize:]
@@ -178,7 +182,7 @@ class HierarchicalDataset(Dataset):
         x, y = self.x[idx], self.targets[idx]
 
         if self.transform:
-            x = self.transform(x)
+            x, y = self.transform(x, y)
 
         # if self.background_noise:
         #     g = torch.Generator()

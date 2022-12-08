@@ -9,7 +9,6 @@ def plot_std(x, std, c='C0', alpha=.3):
     rerr = log10e *  std / x
     plt.fill_between(P, 10 ** (np.log10(x) - rerr), 10 ** (np.log10(x) + rerr), color=c, alpha=alpha)
 
-
 # timing function
 def format_time(elapsed_time):
     """
