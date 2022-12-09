@@ -109,7 +109,7 @@ class HierarchicalDataset(Dataset):
         num_classes=2,
         seed=0,
         train=True,
-        input_format=0,
+        input_format='onehot',
         whitening=0,
         transform=None,
         testsize=-1,

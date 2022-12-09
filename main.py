@@ -13,6 +13,7 @@ from functools import partial
 from init import init_fun
 from optim_loss import loss_func, regularize, opt_algo, measure_accuracy
 from utils import cpu_state_dict
+from observables import locality_measure
 
 def run(args):
 
@@ -26,32 +27,44 @@ def run(args):
         args.batch_size = args.ptr // 2
 
     if args.save_dynamics:
-        dynamics = [{"acc": 0.0, "epoch": -1, "net": cpu_state_dict(net0)}]
+        dynamics = [{"acc": 0.0, "epoch": 0., "net": cpu_state_dict(net0)}]
     else:
         dynamics = None
 
     loss = []
     terr = []
+    locality = []
+    epochs_list = []
+
     best = dict()
     trloss_flag = 0
 
-    for net, epoch, losstr in train(args, trainloader, net0, criterion):
+    for net, epoch, losstr, avg_epoch_time in train(args, trainloader, net0, criterion):
 
         assert str(losstr) != "nan", "Loss is nan value!!"
         loss.append(losstr)
+        epochs_list.append(epoch)
+
+        # measuring locality for fcn nets
+        if args.net == 'fcn':
+            state = net.state_dict()
+            hidden_layers = [state[k] for k in state if 'w' in k][:-2]
+            with torch.no_grad():
+                locality.append(locality_measure(hidden_layers, args)[0])
 
         # avoid computing accuracy each and every epoch if dataset is small and epochs are rescaled
-        if epoch > 250:
-            if epoch % (args.epochs // 250) != 0:
-                continue
+        # if epoch > 250:
+        #     if epoch % (args.epochs // 250) != 0:
+        #         continue
 
         acc = test(args, testloader, net, criterion)
         terr.append(100 - acc)
 
-        if args.save_dynamics and (
-            epoch
-            in (10 ** torch.linspace(-1, math.log10(args.epochs), 30)).int().unique()
-        ):
+        if args.save_dynamics:
+        #     and (
+        #     epoch
+        #     in (10 ** torch.linspace(-1, math.log10(args.epochs), 30)).int().unique()
+        # ):
             # save dynamics at 30 log-spaced points in time
             dynamics.append(
                 {"acc": acc, "epoch": epoch, "net": cpu_state_dict(net)}
@@ -64,15 +77,20 @@ def run(args):
             # if args.save_dynamics:
             #     dynamics.append(best)
             best_acc = acc
-            print(f"BEST ACCURACY ({acc:.02f}) at epoch {epoch+1} !!")
-            out = {
-                "args": args,
-                "train loss": loss,
-                "terr": terr,
-                "dynamics": dynamics,
-                "best": best,
-            }
-            yield out
+            print(f"BEST ACCURACY ({acc:.02f}) at epoch {epoch:.02f} !!")
+
+        out = {
+            "args": args,
+            "epoch": epochs_list,
+            "train loss": loss,
+            "terr": terr,
+            "locality": locality,
+            "dynamics": dynamics,
+            "best": best,
+        }
+
+        yield out
+
         if (losstr == 0 and args.loss == 'hinge') or (losstr < args.zero_loss_threshold and args.loss == 'cross_entropy'):
             trloss_flag += 1
             if trloss_flag >= args.zero_loss_epochs:
@@ -93,6 +111,7 @@ def run(args):
         "best": best,
         "last": cpu_state_dict(net) if args.save_last_net else None,
         "weight_evo": wo,
+        'avg_epoch_time': avg_epoch_time,
     }
     yield out
 
@@ -105,6 +124,9 @@ def train(args, trainloader, net0, criterion):
     print(f"Training for {args.epochs} epochs...")
 
     start_time = time.time()
+
+    num_batches = math.ceil(args.ptr / args.batch_size)
+    checkpoint_batches = torch.linspace(0, num_batches, 10, dtype=int)
 
     for epoch in range(args.epochs):
         net.train()
@@ -124,9 +146,13 @@ def train(args, trainloader, net0, criterion):
 
             correct, total = measure_accuracy(args, outputs, targets, correct, total)
 
+            # during first epoch, save some sgd steps instead of after whole epoch
+            if epoch < 10 and batch_idx in checkpoint_batches and batch_idx != (num_batches - 1):
+                yield net, epoch + (batch_idx + 1) / num_batches, train_loss / (batch_idx + 1), None
+
         avg_epoch_time = (time.time() - start_time) / (epoch + 1)
 
-        if epoch % 10 == 0:
+        if epoch % 5 == 0:
             print(
                 f"[Train epoch {epoch+1} / {args.epochs}, {print_time(avg_epoch_time)}/epoch, ETA: {print_time(avg_epoch_time * (args.epochs - epoch - 1))}]"
                 f"[tr.Loss: {train_loss * args.alpha / (batch_idx + 1):.03f}]"
@@ -135,7 +161,7 @@ def train(args, trainloader, net0, criterion):
 
         scheduler.step()
 
-        yield net, epoch, train_loss / (batch_idx + 1)
+        yield net, epoch + 1, train_loss / (batch_idx + 1), avg_epoch_time
 
 
 def test(args, testloader, net, criterion):
