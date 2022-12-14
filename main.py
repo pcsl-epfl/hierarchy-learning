@@ -104,8 +104,10 @@ def run(args):
 
     out = {
         "args": args,
+        "epoch": epochs_list,
         "train loss": loss,
         "terr": terr,
+        "locality": locality,
         "dynamics": dynamics,
         "init": cpu_state_dict(net0) if args.save_init_net else None,
         "best": best,
