@@ -2,11 +2,12 @@ import torch
 import torch.backends.cudnn as cudnn
 
 from .fcn import DenseNet
-from .cnn import ConvNetGAPMF, ConvNet2L
+from .cnn import ConvNetGAPMF # ConvNet2L
 from .lcn import LocallyHierarchicalNet
 from .cnn2 import CNN2
 from .fcn2 import FCN2
 from .gcnn import GCNN
+
 
 def model_initialization(args, input_dim, ch):
     """
@@ -42,6 +43,8 @@ def model_initialization(args, input_dim, ch):
             out_dim=num_outputs,
             batch_norm=args.batch_norm,
         )
+
+    ### The next 4 architectures are built to have the same *effective* number of parameters ###
     elif args.net == "hlcn":
         net = LocallyHierarchicalNet(
             num_layers=args.net_layers,
@@ -76,12 +79,12 @@ def model_initialization(args, input_dim, ch):
             out_dim=num_outputs,
             bias=args.bias,
         )
-    elif args.net == "cnn2L":
-        net = ConvNet2L(
-            n=ch,
-            h=args.width,
-            out_dim=num_outputs
-        )
+    # elif args.net == "cnn2L":
+    #     net = ConvNet2L(
+    #         n=ch,
+    #         h=args.width,
+    #         out_dim=num_outputs
+    #     )
 
     assert net is not None, "Network architecture not in the list!"
 
