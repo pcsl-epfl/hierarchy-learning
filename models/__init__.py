@@ -1,12 +1,12 @@
-import math
+import torch
 import torch.backends.cudnn as cudnn
 
-from .fcn import *
-from .cnn import *
-from .lcn import *
-from .cnn2 import *
-from .fcn2 import *
-
+from .fcn import DenseNet
+from .cnn import ConvNetGAPMF, ConvNet2L
+from .lcn import LocallyHierarchicalNet
+from .cnn2 import CNN2
+from .fcn2 import FCN2
+from .gcnn import GCNN
 
 def model_initialization(args, input_dim, ch):
     """
@@ -65,7 +65,14 @@ def model_initialization(args, input_dim, ch):
             num_layers=args.net_layers,
             input_channels=ch,
             h=args.width,
-            # filter_size=args.filter_size,
+            out_dim=num_outputs,
+            bias=args.bias,
+        )
+    elif args.net == "gcnn":
+        net = GCNN(
+            num_layers=args.net_layers,
+            input_channels=ch,
+            h=args.width,
             out_dim=num_outputs,
             bias=args.bias,
         )

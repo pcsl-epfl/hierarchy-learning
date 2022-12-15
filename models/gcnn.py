@@ -1,17 +1,34 @@
 import torch
 from torch import nn
 
-class NonOverlappingConv1d(nn.Module):
+
+def tensor_roll(x, shifts=None):
+    d = x.shape[-1]
+    if shifts is None:
+        shifts = -torch.arange(0, d, 2)
+
+    a = torch.arange(d)[None].repeat(x.shape[-2], 1)
+    index = (a + shifts[:, None]) % d
+    return torch.gather(x, -1, index.expand_as(x))
+
+def global_unfold(x):
+    d = x.shape[-1]
+    x = x[..., None, :]
+    x = x.expand(*x.shape[:-2], d // 2, d)
+    return tensor_roll(x)
+
+
+class GlobalConv1d(nn.Module):
     def __init__(
         self, input_channels, out_channels, out_dim, bias=False
     ):
-        super(NonOverlappingConv1d, self).__init__()
-        self.weight = nn.Parameter( # input [bs, cin, space / 2, 2], weight [cout, cin, 1, 2]
+        super(GlobalConv1d, self).__init__()
+        self.weight = nn.Parameter( # input [bs, cin, space], weight [cout, cin, 1, d]
             torch.randn(
                 out_channels,
                 input_channels,
                 1,
-                2,
+                out_dim * 2,
             )
         )
         if bias:
@@ -22,32 +39,33 @@ class NonOverlappingConv1d(nn.Module):
         self.input_channels = input_channels
 
     def forward(self, x):
-        bs, cin, d = x.shape
-        x = x.view(bs, 1, cin, d // 2, 2) # [bs, 1, cin, space // 2, 2]
-        x = x * self.weight # [bs, cout, cin, space // 2, 2]
-        x = x.sum(dim=[-1, -3]) # [bs, cout, space // 2]
+
+        # [bs, cin, d] -> [bs, 1, cin, d // 2, d]
+        x = global_unfold(x)
+        x = x[:, None] * self.weight # [bs, cout, cin, d // 2, d]
+        x = x.sum(dim=[-1, -3]) # [bs, cout, d // 2]
         x /= self.input_channels ** .5
         if self.bias is not None:
             x += self.bias * 0.1
         return x
 
 
-class CNN2(nn.Module):
+class GCNN(nn.Module):
     """
-        CNN crafted to have an effective size equal to the corresponding HLCN.
+        Global CNN crafted to have an effective size equal to the corresponding HLCN.
     """
     def __init__(self, input_channels, h, out_dim, num_layers, bias=False):
-        super(CNN2, self).__init__()
+        super(GCNN, self).__init__()
 
         d = 2 ** num_layers
 
         self.hier = nn.Sequential(
-            NonOverlappingConv1d(
+            GlobalConv1d(
                 input_channels, h, d // 2, bias
             ),
             nn.ReLU(),
             *[nn.Sequential(
-                    NonOverlappingConv1d(
+                    GlobalConv1d(
                         h, h, d // 2 ** (l + 1), bias
                     ),
                     nn.ReLU(),
