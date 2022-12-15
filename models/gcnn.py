@@ -4,10 +4,10 @@ from torch import nn
 
 def tensor_roll(x, shifts=None):
     d = x.shape[-1]
+    device = x.device
     if shifts is None:
-        shifts = -torch.arange(0, d, 2)
-
-    a = torch.arange(d)[None].repeat(x.shape[-2], 1)
+        shifts = -torch.arange(0, d, 2, device=device)
+    a = torch.arange(d, device=device)[None].repeat(x.shape[-2], 1)
     index = (a + shifts[:, None]) % d
     return torch.gather(x, -1, index.expand_as(x))
 
