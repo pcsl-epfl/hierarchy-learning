@@ -78,7 +78,7 @@ def run(args):
             # if args.save_dynamics:
             #     dynamics.append(best)
             best_acc = acc
-            print(f"BEST ACCURACY ({acc:.02f}) at epoch {epoch:.02f} !!")
+            print(f"BEST ACCURACY ({acc:.02f}) at epoch {epoch:.02f} !!", flush=True)
 
         out = {
             "args": args,
@@ -159,7 +159,8 @@ def train(args, trainloader, net0, criterion):
             print(
                 f"[Train epoch {epoch+1} / {args.epochs}, {print_time(avg_epoch_time)}/epoch, ETA: {print_time(avg_epoch_time * (args.epochs - epoch - 1))}]"
                 f"[tr.Loss: {train_loss * args.alpha / (batch_idx + 1):.03f}]"
-                f"[tr.Acc: {100.*correct/total:.03f}, {correct} / {total}]"
+                f"[tr.Acc: {100.*correct/total:.03f}, {correct} / {total}]",
+                flush=True
             )
 
         scheduler.step()
@@ -186,7 +187,8 @@ def test(args, testloader, net, criterion):
 
         print(
             f"[TEST][te.Loss: {test_loss * args.alpha / (batch_idx + 1):.03f}]"
-            f"[te.Acc: {100. * correct / total:.03f}, {correct} / {total}]"
+            f"[te.Acc: {100. * correct / total:.03f}, {correct} / {total}]",
+            flush=True
         )
 
     return 100.0 * correct / total
@@ -194,6 +196,11 @@ def test(args, testloader, net, criterion):
 
 # timing function
 def print_time(elapsed_time):
+
+    # if less than a second, print milliseconds
+    if elapsed_time < 1:
+        return f"{elapsed_time * 1000:.00f}ms"
+
     elapsed_seconds = round(elapsed_time)
 
     m, s = divmod(elapsed_seconds, 60)
