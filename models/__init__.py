@@ -4,6 +4,8 @@ import torch.backends.cudnn as cudnn
 from .fcn import *
 from .cnn import *
 from .lcn import *
+from .cnn2 import *
+from .fcn2 import *
 
 
 def model_initialization(args, input_dim, ch):
@@ -50,6 +52,24 @@ def model_initialization(args, input_dim, ch):
             bias=args.bias,
         )
     elif args.net == "cnn2":
+        net = CNN2(
+            num_layers=args.net_layers,
+            input_channels=ch,
+            h=args.width,
+            # filter_size=args.filter_size,
+            out_dim=num_outputs,
+            bias=args.bias,
+        )
+    elif args.net == "fcn2":
+        net = FCN2(
+            num_layers=args.net_layers,
+            input_channels=ch,
+            h=args.width,
+            # filter_size=args.filter_size,
+            out_dim=num_outputs,
+            bias=args.bias,
+        )
+    elif args.net == "cnn2L":
         net = ConvNet2L(
             n=ch,
             h=args.width,
