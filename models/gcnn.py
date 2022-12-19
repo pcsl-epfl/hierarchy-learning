@@ -52,7 +52,7 @@ class GlobalConv1d(nn.Module):
 
 class GCNN(nn.Module):
     """
-        Global CNN crafted to have an effective size equal to the corresponding HLCN.
+        Global convolutional neural network crafted to have an effective size equal to the corresponding HLCN.
     """
     def __init__(self, input_channels, h, out_dim, num_layers, bias=False):
         super(GCNN, self).__init__()

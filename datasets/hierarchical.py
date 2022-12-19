@@ -138,16 +138,18 @@ class HierarchicalDataset(Dataset):
 
         print(f"Data set size: {self.x.shape[0]}")
 
-        if input_format == "binary":
+        # encode input pairs instead of features
+        if "pairs" in input_format:
+            self.x = pairing_features(self.x, num_features)
+
+        if "binary" in input_format:
             self.x = dec2bin(self.x)
             self.x = self.x.permute(0, 2, 1)
-        elif input_format == "long":
+        elif "long" in input_format:
             self.x = self.x.long() + 1
-        elif input_format == "decimal":
+        elif "decimal" in input_format:
             self.x = ((self.x[:, None] + 1) / num_features - 1) * 2
         elif "onehot" in input_format:
-            if input_format == "onehot_pairs":
-                self.x = pairing_features(self.x)
             self.x = F.one_hot(self.x.long()).float()
             self.x = self.x.permute(0, 2, 1)
         else:
@@ -191,15 +193,21 @@ class HierarchicalDataset(Dataset):
 
         return x, y
 
-def pairs_to_num(xi):
+def pairs_to_num(xi, n):
+    """
+        Convert one long input with n-features encoding to n^2 pairs encoding.
+    """
     ln = len(xi)
     xin = torch.zeros(ln // 2)
     for ii, xii in enumerate(xi):
-        xin[ii // 2] += xii * 10 ** (ii % 2)
+        xin[ii // 2] += xii * n ** (1 - ii % 2)
     return xin
 
-def pairing_features(x):
-    xn = torch.randn(x.shape[0], x.shape[-1] // 2)
+def pairing_features(x, n):
+    """
+        Batch of inputs from n to n^2 encoding.
+    """
+    xn = torch.zeros(x.shape[0], x.shape[-1] // 2)
     for i, xi in enumerate(x.squeeze()):
-        xn[i] = pairs_to_num(xi)
+        xn[i] = pairs_to_num(xi, n)
     return xn

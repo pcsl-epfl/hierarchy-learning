@@ -58,7 +58,9 @@ def run(args):
         #     if epoch % (args.epochs // 250) != 0:
         #         continue
 
-        acc = test(args, testloader, net, criterion)
+        if epoch % 10 != 0 and not args.save_dynamics: continue
+
+        acc = test(args, testloader, net, criterion, print_flag=epoch % 5 == 0)
         terr.append(100 - acc)
 
         if args.save_dynamics:
@@ -168,7 +170,7 @@ def train(args, trainloader, net0, criterion):
         yield net, epoch + 1, train_loss / (batch_idx + 1), avg_epoch_time
 
 
-def test(args, testloader, net, criterion):
+def test(args, testloader, net, criterion, print_flag=True):
 
     net.eval()
     test_loss = 0
@@ -185,11 +187,12 @@ def test(args, testloader, net, criterion):
 
             correct, total = measure_accuracy(args, outputs, targets, correct, total)
 
-        print(
-            f"[TEST][te.Loss: {test_loss * args.alpha / (batch_idx + 1):.03f}]"
-            f"[te.Acc: {100. * correct / total:.03f}, {correct} / {total}]",
-            flush=True
-        )
+        if print_flag:
+            print(
+                f"[TEST][te.Loss: {test_loss * args.alpha / (batch_idx + 1):.03f}]"
+                f"[te.Acc: {100. * correct / total:.03f}, {correct} / {total}]",
+                flush=True
+            )
 
     return 100.0 * correct / total
 
@@ -326,10 +329,14 @@ def main():
 
     # define train and test sets sizes
     Pmax = args.m ** (2 ** args.num_layers - 1) * args.num_classes
+
     if 0 < args.pte <= 1:
         args.pte = int(args.pte * Pmax)
+    elif args.ptr == -1:
+        args.pte = min(Pmax // 5, 20000)
     else:
         args.pte = int(args.pte)
+
     if args.ptr >= 0:
         if args.ptr <= 1:
             args.ptr = int(args.ptr * Pmax)
@@ -338,14 +345,7 @@ def main():
             args.ptr = int(args.ptr)
         assert args.ptr > 0, "relative dataset size (P/Pmax) too small for such dataset!"
     else:
-        # def boo(k, m, n, L):
-        #     return math.log2(m) * (L - k + 2 ** k - 1) - math.log2(n) * 2 ** k
-        # def mscaling(k, m, L):
-        #     return m ** (L - k + 2 ** k - 1)
-        # from scipy.optimize import fsolve
-        # k = fsolve(boo, 2, args=(args.m, args.num_features, args.num_layers))[0]
-        # args.ptr = int(- args.ptr * mscaling(k, args.m, args.num_layers))
-        args.ptr = int(- args.ptr * args.m ** (args.num_layers + 1))
+        args.ptr = int(- args.ptr * args.m ** (args.num_layers) * args.num_features)
 
     with open(args.output, "wb") as handle:
         pickle.dump(args, handle)

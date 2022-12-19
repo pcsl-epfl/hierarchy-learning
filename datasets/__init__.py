@@ -42,7 +42,8 @@ def dataset_initialization(args):
             seed=args.seed_init,
             train=True,
             transform=transform,
-            testsize=args.pte
+            testsize=args.pte,
+            memory_constraint= 10 * (args.ptr + args.pte)
         )
 
         testset = HierarchicalDataset(
@@ -55,7 +56,8 @@ def dataset_initialization(args):
             seed=args.seed_init,
             train=False,
             transform=transform,
-            testsize=args.pte
+            testsize=args.pte,
+            memory_constraint= 10 * (args.ptr + args.pte)
         )
 
     elif args.dataset == 'parity':
