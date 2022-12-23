@@ -340,12 +340,13 @@ def main():
     if args.ptr >= 0:
         if args.ptr <= 1:
             args.ptr = int(args.ptr * Pmax)
-            args.pte = min(Pmax - args.ptr, args.pte)
         else:
             args.ptr = int(args.ptr)
         assert args.ptr > 0, "relative dataset size (P/Pmax) too small for such dataset!"
     else:
         args.ptr = int(- args.ptr * args.m ** (args.num_layers) * args.num_features)
+
+    args.pte = min(Pmax - args.ptr, args.pte)
 
     with open(args.output, "wb") as handle:
         pickle.dump(args, handle)

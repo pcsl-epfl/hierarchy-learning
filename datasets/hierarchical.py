@@ -142,6 +142,9 @@ class HierarchicalDataset(Dataset):
         if "pairs" in input_format:
             self.x = pairing_features(self.x, num_features)
 
+        if 'onehot' not in input_format:
+            assert not whitening, "Whitening only implemented for one-hot encoding"
+
         if "binary" in input_format:
             self.x = dec2bin(self.x)
             self.x = self.x.permute(0, 2, 1)
@@ -152,6 +155,13 @@ class HierarchicalDataset(Dataset):
         elif "onehot" in input_format:
             self.x = F.one_hot(self.x.long()).float()
             self.x = self.x.permute(0, 2, 1)
+
+            if whitening:
+                inv_sqrt_n = (num_features - 1) ** -.5
+                self.x = self.x * (1 + inv_sqrt_n) - inv_sqrt_n
+            else:
+                exp = int("pairs" in input_format) + 1
+                self.x *= num_features ** exp
         else:
             raise ValueError
 
@@ -165,10 +175,6 @@ class HierarchicalDataset(Dataset):
             P = P[-testsize:]
 
         self.x, self.targets = self.x[P], self.targets[P]
-
-        if whitening:
-            inv_sqrt_n = (num_features - 1) ** -.5
-            self.x = self.x * (1 + inv_sqrt_n) - inv_sqrt_n
 
         self.transform = transform
 
