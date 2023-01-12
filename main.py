@@ -60,7 +60,10 @@ def run(args):
 
         if epoch % 10 != 0 and not args.save_dynamics: continue
 
-        acc = test(args, testloader, net, criterion, print_flag=epoch % 5 == 0)
+        if testloader:
+            acc = test(args, testloader, net, criterion, print_flag=epoch % 5 == 0)
+        else:
+            acc = torch.nan
         terr.append(100 - acc)
 
         if args.save_dynamics:

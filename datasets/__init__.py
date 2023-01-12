@@ -46,19 +46,22 @@ def dataset_initialization(args):
             memory_constraint= 10 * (args.ptr + args.pte)
         )
 
-        testset = HierarchicalDataset(
-            num_features=args.num_features,
-            m=args.m,  # features multiplicity
-            num_layers=args.num_layers,
-            num_classes=nc,
-            input_format=args.input_format,
-            whitening=args.whitening,
-            seed=args.seed_init,
-            train=False,
-            transform=transform,
-            testsize=args.pte,
-            memory_constraint= 10 * (args.ptr + args.pte)
-        )
+        if args.pte:
+            testset = HierarchicalDataset(
+                num_features=args.num_features,
+                m=args.m,  # features multiplicity
+                num_layers=args.num_layers,
+                num_classes=nc,
+                input_format=args.input_format,
+                whitening=args.whitening,
+                seed=args.seed_init,
+                train=False,
+                transform=transform,
+                testsize=args.pte,
+                memory_constraint= 10 * (args.ptr + args.pte)
+            )
+        else:
+            testset = None
 
     elif args.dataset == 'parity':
 
@@ -72,13 +75,16 @@ def dataset_initialization(args):
             testsize=args.pte
         )
 
-        testset = ParityDataset(
-            num_layers=args.num_layers,
-            seed=args.seed_init,
-            train=False,
-            transform=transform,
-            testsize=args.pte
-        )
+        if args.pte:
+            testset = ParityDataset(
+                num_layers=args.num_layers,
+                seed=args.seed_init,
+                train=False,
+                transform=transform,
+                testsize=args.pte
+            )
+        else:
+            testset = None
 
 
     else:
@@ -90,7 +96,8 @@ def dataset_initialization(args):
     if args.loss == 'hinge':
         # change to binary labels
         trainset.targets = 2 * (torch.as_tensor(trainset.targets) >= nc // 2) - 1
-        testset.targets = 2 * (torch.as_tensor(testset.targets) >= nc // 2) - 1
+        if testset:
+            testset.targets = 2 * (torch.as_tensor(testset.targets) >= nc // 2) - 1
 
     P = len(trainset)
     assert args.ptr <= 32 + P, "ptr is too large!!"

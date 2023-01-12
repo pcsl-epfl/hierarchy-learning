@@ -38,6 +38,8 @@ def hierarchical_features(num_features, num_layers, m, num_classes, seed=0):
         new_features = torch.tensor(new_features)
         new_features = new_features.reshape(-1, m, 2)  # [n_features h-1, m, 2]
 
+        # here new_features are ordered as what makes a 2, what makes a 1 etc...]
+
         # map features to indices
         feature_to_index = dict([(e, i) for i, e in enumerate(features_set)])
 

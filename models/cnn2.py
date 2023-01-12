@@ -1,6 +1,5 @@
 import torch
 from torch import nn
-import torch.nn.functional as F
 
 class NonOverlappingConv1d(nn.Module):
     def __init__(
@@ -56,11 +55,6 @@ class CNN2(nn.Module):
                 for l in range(1, num_layers)
             ],
         )
-
-        # force last layer representation
-        # beta_onehot = F.one_hot(torch.arange(out_dim)[None].repeat(h // out_dim, 1).t().flatten()).float() * 10
-        # self.beta = nn.Parameter(beta_onehot)
-        # self.register_buffer('beta', beta_onehot)
         self.beta = nn.Parameter(torch.randn(h, out_dim))
 
     def forward(self, x):

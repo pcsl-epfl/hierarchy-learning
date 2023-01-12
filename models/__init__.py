@@ -94,8 +94,8 @@ def model_initialization(args, input_dim, ch):
 
     net = net.to(args.device)
 
-    if args.device == "cuda":
-        net = torch.nn.DataParallel(net)
-        cudnn.benchmark = True
+    # if args.device == "cuda":
+    #     net = torch.nn.DataParallel(net)
+    #     cudnn.benchmark = True
 
     return net
