@@ -4,9 +4,10 @@ import torch.backends.cudnn as cudnn
 from .fcn import DenseNet
 from .cnn import ConvNetGAPMF # ConvNet2L
 from .lcn import LocallyHierarchicalNet
-from .cnn2 import CNN2
+from .cnn2 import CNN2, CNNLayerWise
 from .fcn2 import FCN2
 from .gcnn import GCNN
+from .rf import RFLayerwise
 
 
 def model_initialization(args, input_dim, ch):
@@ -79,12 +80,23 @@ def model_initialization(args, input_dim, ch):
             out_dim=num_outputs,
             bias=args.bias,
         )
-    # elif args.net == "cnn2L":
-    #     net = ConvNet2L(
-    #         n=ch,
-    #         h=args.width,
-    #         out_dim=num_outputs
-    #     )
+    elif args.net == "cnn_layerwise":
+        net = CNNLayerWise(
+            num_layers=args.net_layers,
+            input_channels=ch,
+            h=args.width,
+            # filter_size=args.filter_size,
+            out_dim=num_outputs,
+            bias=args.bias,
+        )
+    elif args.net == "rf_layerwise":
+        net = RFLayerwise(
+            num_layers=args.net_layers,
+            input_channels=ch,
+            h=args.width,
+            out_dim=num_outputs,
+            bias=args.bias,
+        )
 
     assert net is not None, "Network architecture not in the list!"
 

@@ -137,6 +137,14 @@ def train(args, trainloader, net0, criterion):
     checkpoint_batches = torch.linspace(0, num_batches, 10, dtype=int)
 
     for epoch in range(args.epochs):
+
+        # layerwise training
+        if epoch % (args.epochs // args.net_layers + 1) == 0:
+            if 'layerwise' in args.net:
+                l = epoch // (args.epochs // args.net_layers + 1)
+                net.init_layerwise_(l)
+                print(f'Layer-wise training up to layer {l}.', flush=True)
+
         net.train()
         train_loss = 0
         correct = 0

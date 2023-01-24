@@ -1,4 +1,5 @@
 dataframes/
+figures/
 *.ipynb
 
 # Byte-compiled / optimized / DLL files
