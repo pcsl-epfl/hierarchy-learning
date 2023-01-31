@@ -143,8 +143,6 @@ class HierarchicalDataset(Dataset):
             self.x, unique_indices = unique(self.x, dim=0)
             self.targets = self.targets[unique_indices]
 
-        print(f"Data set size: {self.x.shape[0]}")
-
         # encode input pairs instead of features
         if "pairs" in input_format:
             self.x = pairing_features(self.x, num_features)

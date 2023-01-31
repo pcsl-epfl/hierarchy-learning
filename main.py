@@ -14,7 +14,7 @@ from functools import partial
 from init import init_fun
 from optim_loss import loss_func, regularize, opt_algo, measure_accuracy
 from utils import cpu_state_dict
-from observables import locality_measure
+from observables import locality_measure, state2permutation_stability
 
 def run(args):
 
@@ -35,6 +35,7 @@ def run(args):
     loss = []
     terr = []
     locality = []
+    stability = []
     epochs_list = []
 
     best = dict()
@@ -52,6 +53,11 @@ def run(args):
             hidden_layers = [state[k] for k in state if 'w' in k][:-2]
             with torch.no_grad():
                 locality.append(locality_measure(hidden_layers, args)[0])
+
+        # measure stability to semantically equivalent data realizations
+        if args.stability == 1:
+            state = net.state_dict()
+            stability.append(state2permutation_stability(state, args))
 
         # avoid computing accuracy each and every epoch if dataset is small and epochs are rescaled
         # if epoch > 250:
@@ -91,6 +97,7 @@ def run(args):
             "train loss": loss,
             "terr": terr,
             "locality": locality,
+            "stability": stability,
             "dynamics": dynamics,
             "best": best,
         }
@@ -108,12 +115,17 @@ def run(args):
         print("Weights evolution failed!")
         wo = None
 
+    if args.stability == 2:
+        state = net.state_dict()
+        stability.append(state2permutation_stability(state, args))
+
     out = {
         "args": args,
         "epoch": epochs_list,
         "train loss": loss,
         "terr": terr,
         "locality": locality,
+        "stability": stability,
         "dynamics": dynamics,
         "init": cpu_state_dict(net0) if args.save_init_net else None,
         "best": best,
@@ -309,6 +321,9 @@ def main():
         "--alpha", default=1.0, type=float, help="alpha-trick parameter"
     )
 
+    ### Observables ###
+    parser.add_argument("--stability", type=int, default=0)
+
     ### SAVING ARGS ###
     parser.add_argument("--save_init_net", type=int, default=1)
     parser.add_argument("--save_best_net", type=int, default=1)
@@ -355,7 +370,7 @@ def main():
             args.ptr = int(args.ptr)
         assert args.ptr > 0, "relative dataset size (P/Pmax) too small for such dataset!"
     else:
-        args.ptr = int(- args.ptr * args.m ** (args.num_layers) * args.num_features)
+        args.ptr = int(- args.ptr * args.m ** (args.num_layers - 0.5) * args.num_features)
 
     args.pte = min(Pmax - args.ptr, args.pte)
 
