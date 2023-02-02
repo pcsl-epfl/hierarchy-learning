@@ -112,6 +112,7 @@ class HierarchicalDataset(Dataset):
         num_layers=2,
         num_classes=2,
         seed=0,
+        seed_traintest_split=0,
         train=True,
         input_format='onehot',
         whitening=0,
@@ -173,7 +174,9 @@ class HierarchicalDataset(Dataset):
         if testsize == -1:
             testsize = min(len(self.x) // 5, 20000)
 
-        P = torch.randperm(len(self.targets))
+        g = torch.Generator()
+        g.manual_seed(seed_traintest_split)
+        P = torch.randperm(len(self.targets), generator=g)
         if train and testsize:
             P = P[:-testsize]
         else:
