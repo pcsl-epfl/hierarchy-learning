@@ -48,11 +48,11 @@ def hierarchical_features(num_features, num_layers, m, num_classes, seed=0):
         features.append(new_features)
     return features
 
-def features_to_data(samples, features, num_features, m, num_classes, num_layers, seed=0, seed_reset_layer=42):
+def features_to_data(samples_indices, features, m, num_classes, num_layers, seed=0, seed_reset_layer=42):
     """
     Build hierarchical dataset from features hierarchy.
 
-    :param samples: torch tensor containing indices in [0, 1, ..., Pmax - 1] of datapoints to sample
+    :param samples_indices: torch tensor containing indices in [0, 1, ..., Pmax - 1] of datapoints to sample
     :param features: hierarchy of features
     :param num_features: features vocabulary size
     :param m: features multiplicity (number of ways in which a feature can be made from sub-feat.)
@@ -62,15 +62,14 @@ def features_to_data(samples, features, num_features, m, num_classes, num_layers
     :return: dataset {x, y}
     """
     
-    Pmax = m ** (2 ** num_layers - 1) * num_features
+    Pmax = m ** (2 ** num_layers - 1) * num_classes
 
     np.random.seed(seed)
     x = features[-1].reshape(num_classes, *sum([(m, 2) for _ in range(num_layers)], ())) # [nc, m, 2, m, 2, ...]
     
-#     y = torch.arange(num_classes)[None].repeat(samples_per_class, 1).t().flatten()
-    factor = Pmax // num_features
-    y = samples // factor
-    samples = samples % factor
+    groups_size = Pmax // num_classes
+    y = samples_indices // groups_size
+    samples_indices = samples_indices % groups_size
 
     indices = []
     for l in range(num_layers):
@@ -85,21 +84,21 @@ def features_to_data(samples, features, num_features, m, num_classes, num_layers
                 .t()
                 .flatten()
             )
-            left_right = left_right[None].repeat(len(samples), 1)
+            left_right = left_right[None].repeat(len(samples_indices), 1)
             
             indices.append(left_right)
 
         if l >= seed_reset_layer:
             np.random.seed(seed + 42 + l)
             
-        factor //= m ** (2 ** l)
-        layer_indices = samples // factor
+        groups_size //= m ** (2 ** l)
+        layer_indices = samples_indices // groups_size
         
         rules = number2base(layer_indices, m).repeat(1, 2 ** (num_layers - l - 1))
     
         indices.append(rules)
         
-        samples = samples % factor
+        samples_indices = samples_indices % groups_size
         
     yi = y[:, None].repeat(1, 2 ** (num_layers - 1))
 
@@ -119,7 +118,7 @@ class HierarchicalDataset(Dataset):
         num_layers=2,
         num_classes=2,
         seed=0,
-        samples=-1,
+        samples_indices=None,
         seed_traintest_split=0,
         train=True,
         input_format='onehot',
@@ -135,15 +134,15 @@ class HierarchicalDataset(Dataset):
         self.num_layers = num_layers
         self.num_classes = num_classes
         Pmax = m ** (2 ** num_layers - 1) * num_classes
-        if samples == -1:
-            samples = torch.arange(Pmax)
+        if samples_indices is None:
+            samples_indices = torch.arange(Pmax)
             
         features = hierarchical_features(
             num_features, num_layers, m, num_classes, seed=seed
         )
                 
         self.x, self.targets = features_to_data(
-            samples, features, num_features, m, num_classes, num_layers, seed=seed, seed_reset_layer=seed_reset_layer
+            samples_indices, features, m, num_classes, num_layers, seed=seed, seed_reset_layer=seed_reset_layer
         )
 
         # encode input pairs instead of features
