@@ -6,8 +6,7 @@ from itertools import *
 import random
 import numpy as np
 
-from .utils import unique, dec2bin
-
+from .utils import dec2bin
 
 def hierarchical_features(num_features, num_layers, m, num_classes, seed=0):
     """
@@ -49,23 +48,29 @@ def hierarchical_features(num_features, num_layers, m, num_classes, seed=0):
         features.append(new_features)
     return features
 
-
-def features_to_data(features, m, num_classes, num_layers, samples_per_class, seed=0, seed_reset_layer=42):
+def features_to_data(samples, features, num_features, m, num_classes, num_layers, seed=0, seed_reset_layer=42):
     """
     Build hierarchical dataset from features hierarchy.
 
+    :param samples: torch tensor containing indices in [0, 1, ..., Pmax - 1] of datapoints to sample
     :param features: hierarchy of features
+    :param num_features: features vocabulary size
     :param m: features multiplicity (number of ways in which a feature can be made from sub-feat.)
     :param num_classes: number of different classes
     :param num_layers: number of layers in the hierarchy (short: `l`)
-    :param samples_per_class: self-expl.
     :param seed: controls randomness in sampling
     :return: dataset {x, y}
     """
+    
+    Pmax = m ** (2 ** num_layers - 1) * num_features
 
     np.random.seed(seed)
     x = features[-1].reshape(num_classes, *sum([(m, 2) for _ in range(num_layers)], ())) # [nc, m, 2, m, 2, ...]
-    y = torch.arange(num_classes)[None].repeat(samples_per_class, 1).t().flatten()
+    
+#     y = torch.arange(num_classes)[None].repeat(samples_per_class, 1).t().flatten()
+    factor = Pmax // num_features
+    y = samples // factor
+    samples = samples % factor
 
     indices = []
     for l in range(num_layers):
@@ -80,25 +85,27 @@ def features_to_data(features, m, num_classes, num_layers, samples_per_class, se
                 .t()
                 .flatten()
             )
-            left_right = left_right[None].repeat(samples_per_class * num_classes, 1)
+            left_right = left_right[None].repeat(len(samples), 1)
+            
             indices.append(left_right)
 
-        # randomly choose sub-features
-        # TODO: to avoid resampling, enumerate all sub-features and only later randomize. Too large tensor for memory though.
-        # (for the moment, this is solved by resampling + filtering unique samples.)
         if l >= seed_reset_layer:
             np.random.seed(seed + 42 + l)
-        random_features = np.random.choice(
-            range(m), size=(samples_per_class * num_classes, 2 ** l)
-        ).repeat(2 ** (num_layers - l - 1), 1)
-        indices.append(torch.tensor(random_features))
-
+            
+        factor //= m ** (2 ** l)
+        layer_indices = samples // factor
+        
+        rules = number2base(layer_indices, m).repeat(1, 2 ** (num_layers - l - 1))
+    
+        indices.append(rules)
+        
+        samples = samples % factor
+        
     yi = y[:, None].repeat(1, 2 ** (num_layers - 1))
 
     x = x[tuple([yi, *indices])].flatten(1)
 
     return x, y
-
 
 class HierarchicalDataset(Dataset):
     """
@@ -112,15 +119,14 @@ class HierarchicalDataset(Dataset):
         num_layers=2,
         num_classes=2,
         seed=0,
+        samples=-1,
         seed_traintest_split=0,
         train=True,
         input_format='onehot',
         whitening=0,
         transform=None,
         testsize=-1,
-        memory_constraint=5e5,
         seed_reset_layer=42,
-        unique_datapoints=1
     ):
         assert testsize or train, "testsize must be larger than zero when generating a test set!"
         torch.manual_seed(seed)
@@ -129,20 +135,16 @@ class HierarchicalDataset(Dataset):
         self.num_layers = num_layers
         self.num_classes = num_classes
         Pmax = m ** (2 ** num_layers - 1) * num_classes
-
-
-        samples_per_class = min(10 * Pmax, int(memory_constraint)) # constrain dataset size for memory budget
-
+        if samples == -1:
+            samples = torch.arange(Pmax)
+            
         features = hierarchical_features(
             num_features, num_layers, m, num_classes, seed=seed
         )
+                
         self.x, self.targets = features_to_data(
-            features, m, num_classes, num_layers, samples_per_class=samples_per_class, seed=seed, seed_reset_layer=seed_reset_layer
+            samples, features, num_features, m, num_classes, num_layers, seed=seed, seed_reset_layer=seed_reset_layer
         )
-
-        if unique_datapoints:
-            self.x, unique_indices = unique(self.x, dim=0)
-            self.targets = self.targets[unique_indices]
 
         # encode input pairs instead of features
         if "pairs" in input_format:
@@ -225,3 +227,10 @@ def pairing_features(x, n):
     for i, xi in enumerate(x.squeeze()):
         xn[i] = pairs_to_num(xi, n)
     return xn
+
+def number2base(n, b):
+    digits = []
+    while n.sum():
+        digits.append(n % b)
+        n //= b
+    return torch.stack(digits[::-1]).t()
