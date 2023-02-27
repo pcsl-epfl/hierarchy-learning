@@ -11,7 +11,6 @@ from .utils import dec2bin
 def hierarchical_features(num_features, num_layers, m, num_classes, seed=0):
     """
     Build hierarchy of features.
-
     :param num_features: number of features to choose from at each layer (short: `n`).
     :param num_layers: number of layers in the hierarchy (short: `l`)
     :param m: features multiplicity (number of ways in which a feature can be made from sub-feat.)
@@ -51,7 +50,6 @@ def hierarchical_features(num_features, num_layers, m, num_classes, seed=0):
 def features_to_data(samples_indices, features, m, num_classes, num_layers, seed=0, seed_reset_layer=42):
     """
     Build hierarchical dataset from features hierarchy.
-
     :param samples_indices: torch tensor containing indices in [0, 1, ..., Pmax - 1] of datapoints to sample
     :param features: hierarchy of features
     :param num_features: features vocabulary size
@@ -94,7 +92,7 @@ def features_to_data(samples_indices, features, m, num_classes, num_layers, seed
         groups_size //= m ** (2 ** l)
         layer_indices = samples_indices // groups_size
         
-        rules = number2base(layer_indices, m)
+        rules = number2base(layer_indices, m, string_length=2**l)
         rules = (
             rules[:, None]
             .repeat(1, 2 ** (num_layers - l - 1), 1)
@@ -233,9 +231,12 @@ def pairing_features(x, n):
         xn[i] = pairs_to_num(xi, n)
     return xn
 
-def number2base(n, b):
+def number2base(numbers, base, string_length=None):
     digits = []
-    while n.sum():
-        digits.append(n % b)
-        n //= b
+    while numbers.sum():
+        digits.append(numbers % base)
+        numbers //= base
+    if string_length:
+        assert len(digits) <= string_length, "String length required is too small to represent numbers!"
+        digits += [torch.zeros(len(numbers), dtype=int)] * (string_length - len(digits))
     return torch.stack(digits[::-1]).t()
