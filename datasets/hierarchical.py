@@ -145,6 +145,8 @@ class HierarchicalDataset(Dataset):
         Pmax = m ** (2 ** num_layers - 1) * num_classes
         if max_dataset_size is None:
             max_dataset_size = Pmax
+        if testsize == -1:
+            testsize = min(max_dataset_size // 5, 20000)
             
         g = torch.Generator()
         g.manual_seed(seed_traintest_split)
@@ -184,9 +186,6 @@ class HierarchicalDataset(Dataset):
                 self.x *= num_features ** exp
         else:
             raise ValueError
-
-        if testsize == -1:
-            testsize = min(len(self.x) // 5, 20000)
 
         self.transform = transform
 
