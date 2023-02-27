@@ -370,7 +370,7 @@ def main():
             args.ptr = int(args.ptr)
         assert args.ptr > 0, "relative dataset size (P/Pmax) too small for such dataset!"
     else:
-        args.ptr = int(- args.ptr * args.m ** (args.num_layers - 1) * args.num_features ** 1.5)
+        args.ptr = int(- args.ptr * args.m ** args.num_layers * args.num_features)
 
     args.pte = min(Pmax - args.ptr, args.pte)
 
