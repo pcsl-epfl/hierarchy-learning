@@ -56,7 +56,7 @@ def features_to_data(samples_indices, features, m, num_classes, num_layers, seed
     :param m: features multiplicity (number of ways in which a feature can be made from sub-feat.)
     :param num_classes: number of different classes
     :param num_layers: number of layers in the hierarchy (short: `l`)
-    :param seed: controls randomness in sampling
+    :param seed: controls randomness in sampling for stability measurements
     :return: dataset {x, y}
     """
     
@@ -122,7 +122,7 @@ class HierarchicalDataset(Dataset):
         num_layers=2,
         num_classes=2,
         seed=0,
-        samples_indices=None,
+        max_dataset_size=None,
         seed_traintest_split=0,
         train=True,
         input_format='onehot',
@@ -137,13 +137,22 @@ class HierarchicalDataset(Dataset):
         self.m = m  # features multiplicity
         self.num_layers = num_layers
         self.num_classes = num_classes
-        Pmax = m ** (2 ** num_layers - 1) * num_classes
-        if samples_indices is None:
-            samples_indices = torch.arange(Pmax)
-            
+        
         features = hierarchical_features(
             num_features, num_layers, m, num_classes, seed=seed
         )
+        
+        Pmax = m ** (2 ** num_layers - 1) * num_classes
+        if max_dataset_size is None:
+            max_dataset_size = Pmax
+            
+        g = torch.Generator()
+        g.manual_seed(seed_traintest_split)
+        samples_indices = torch.randperm(Pmax, generator=g)[:max_dataset_size]
+        if train and testsize:
+            samples_indices = samples_indices[:-testsize]
+        else:
+            samples_indices = samples_indices[-testsize:]
                 
         self.x, self.targets = features_to_data(
             samples_indices, features, m, num_classes, num_layers, seed=seed, seed_reset_layer=seed_reset_layer
@@ -178,16 +187,6 @@ class HierarchicalDataset(Dataset):
 
         if testsize == -1:
             testsize = min(len(self.x) // 5, 20000)
-
-        g = torch.Generator()
-        g.manual_seed(seed_traintest_split)
-        P = torch.randperm(len(self.targets), generator=g)
-        if train and testsize:
-            P = P[:-testsize]
-        else:
-            P = P[-testsize:]
-
-        self.x, self.targets = self.x[P], self.targets[P]
 
         self.transform = transform
 
