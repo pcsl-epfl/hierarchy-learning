@@ -94,7 +94,7 @@ def features_to_data(samples_indices, features, m, num_classes, num_layers, seed
         groups_size //= m ** (2 ** l)
         layer_indices = samples_indices // groups_size
         
-        rules = number2base(layer_indices, m).repeat(1, 2 ** (num_layers - l - 1))
+        rules = number2base(layer_indices, m)
         rules = (
             rules[:, None]
             .repeat(1, 2 ** (num_layers - l - 1), 1)
