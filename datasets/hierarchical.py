@@ -57,12 +57,12 @@ def features_to_data(samples_indices, features, m, num_classes, num_layers, seed
     :param num_classes: number of different classes
     :param num_layers: number of layers in the hierarchy (short: `l`)
     :param seed: controls randomness in sampling for stability measurements
+    :param seed_reset_layer: layer from which to randomize the choice of semantically equivalent subfeatures (for stability measurements)
     :return: dataset {x, y}
     """
     
     Pmax = m ** (2 ** num_layers - 1) * num_classes
 
-    np.random.seed(seed)
     x = features[-1].reshape(num_classes, *sum([(m, 2) for _ in range(num_layers)], ())) # [nc, m, 2, m, 2, ...]
     
     groups_size = Pmax // num_classes
@@ -88,6 +88,8 @@ def features_to_data(samples_indices, features, m, num_classes, num_layers, seed
 
         if l >= seed_reset_layer:
             np.random.seed(seed + 42 + l)
+            perm = torch.randperm(len(samples_indices))
+            samples_indices = samples_indices[perm]
             
         groups_size //= m ** (2 ** l)
         layer_indices = samples_indices // groups_size
