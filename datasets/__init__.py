@@ -43,7 +43,7 @@ def dataset_initialization(args):
             train=True,
             transform=transform,
             testsize=args.pte,
-            memory_constraint= 10 * (args.ptr + args.pte)
+            max_dataset_size=args.ptr+args.pte
         )
 
         if args.pte:
@@ -58,7 +58,7 @@ def dataset_initialization(args):
                 train=False,
                 transform=transform,
                 testsize=args.pte,
-                memory_constraint= 10 * (args.ptr + args.pte)
+                max_dataset_size=args.ptr+args.pte
             )
         else:
             testset = None
