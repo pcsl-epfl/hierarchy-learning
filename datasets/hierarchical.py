@@ -6,11 +6,13 @@ from itertools import *
 import random
 import numpy as np
 
-from .utils import dec2bin
+from .utils import unique, dec2bin
+
 
 def hierarchical_features(num_features, num_layers, m, num_classes, seed=0):
     """
     Build hierarchy of features.
+
     :param num_features: number of features to choose from at each layer (short: `n`).
     :param num_layers: number of layers in the hierarchy (short: `l`)
     :param m: features multiplicity (number of ways in which a feature can be made from sub-feat.)
@@ -47,27 +49,23 @@ def hierarchical_features(num_features, num_layers, m, num_classes, seed=0):
         features.append(new_features)
     return features
 
-def features_to_data(samples_indices, features, m, num_classes, num_layers, seed=0, seed_reset_layer=42):
+
+def features_to_data(features, m, num_classes, num_layers, samples_per_class, seed=0, seed_reset_layer=42):
     """
     Build hierarchical dataset from features hierarchy.
-    :param samples_indices: torch tensor containing indices in [0, 1, ..., Pmax - 1] of datapoints to sample
+
     :param features: hierarchy of features
-    :param num_features: features vocabulary size
     :param m: features multiplicity (number of ways in which a feature can be made from sub-feat.)
     :param num_classes: number of different classes
     :param num_layers: number of layers in the hierarchy (short: `l`)
-    :param seed: controls randomness in sampling for stability measurements
-    :param seed_reset_layer: layer from which to randomize the choice of semantically equivalent subfeatures (for stability measurements)
+    :param samples_per_class: self-expl.
+    :param seed: controls randomness in sampling
     :return: dataset {x, y}
     """
-    
-    Pmax = m ** (2 ** num_layers - 1) * num_classes
 
+    np.random.seed(seed)
     x = features[-1].reshape(num_classes, *sum([(m, 2) for _ in range(num_layers)], ())) # [nc, m, 2, m, 2, ...]
-    
-    groups_size = Pmax // num_classes
-    y = samples_indices // groups_size
-    samples_indices = samples_indices % groups_size
+    y = torch.arange(num_classes)[None].repeat(samples_per_class, 1).t().flatten()
 
     indices = []
     for l in range(num_layers):
@@ -82,35 +80,25 @@ def features_to_data(samples_indices, features, m, num_classes, num_layers, seed
                 .t()
                 .flatten()
             )
-            left_right = left_right[None].repeat(len(samples_indices), 1)
-            
+            left_right = left_right[None].repeat(samples_per_class * num_classes, 1)
             indices.append(left_right)
 
+        # randomly choose sub-features
+        # TODO: to avoid resampling, enumerate all sub-features and only later randomize. Too large tensor for memory though.
+        # (for the moment, this is solved by resampling + filtering unique samples.)
         if l >= seed_reset_layer:
             np.random.seed(seed + 42 + l)
-            perm = torch.randperm(len(samples_indices))
-            samples_indices = samples_indices[perm]
-            
-        groups_size //= m ** (2 ** l)
-        layer_indices = samples_indices // groups_size
-        
-        rules = number2base(layer_indices, m, string_length=2**l)
-        rules = (
-            rules[:, None]
-            .repeat(1, 2 ** (num_layers - l - 1), 1)
-            .permute(0, 2, 1)
-            .flatten(1)            
-        )
-    
-        indices.append(rules)
-        
-        samples_indices = samples_indices % groups_size
-        
+        random_features = np.random.choice(
+            range(m), size=(samples_per_class * num_classes, 2 ** l)
+        ).repeat(2 ** (num_layers - l - 1), 1)
+        indices.append(torch.tensor(random_features))
+
     yi = y[:, None].repeat(1, 2 ** (num_layers - 1))
 
     x = x[tuple([yi, *indices])].flatten(1)
 
     return x, y
+
 
 class HierarchicalDataset(Dataset):
     """
@@ -238,13 +226,3 @@ def pairing_features(x, n):
     for i, xi in enumerate(x.squeeze()):
         xn[i] = pairs_to_num(xi, n)
     return xn
-
-def number2base(numbers, base, string_length=None):
-    digits = []
-    while numbers.sum():
-        digits.append(numbers % base)
-        numbers //= base
-    if string_length:
-        assert len(digits) <= string_length, "String length required is too small to represent numbers!"
-        digits += [torch.zeros(len(numbers), dtype=int)] * (string_length - len(digits))
-    return torch.stack(digits[::-1]).t()
