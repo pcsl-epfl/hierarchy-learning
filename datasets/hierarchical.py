@@ -152,7 +152,15 @@ class HierarchicalDataset(Dataset):
             
         g = torch.Generator()
         g.manual_seed(seed_traintest_split)
-        samples_indices = torch.randperm(Pmax, generator=g)[:max_dataset_size]
+
+        if Pmax < 5e6: # there is a crossover in computational time of the two sampling methods around this value of Pmax
+            samples_indices = torch.randperm(Pmax, generator=g)[:max_dataset_size]
+        else:
+            samples_indices = torch.randint(Pmax, (2 * max_dataset_size,), generator=g)
+            samples_indices = torch.unique(samples_indices)
+            perm = torch.randperm(len(samples_indices), generator=g)[:max_dataset_size]
+            samples_indices = samples_indices[perm]
+    
         if train and testsize:
             samples_indices = samples_indices[:-testsize]
         else:
