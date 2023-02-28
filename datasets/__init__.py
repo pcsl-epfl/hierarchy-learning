@@ -100,7 +100,6 @@ def dataset_initialization(args):
             testset.targets = 2 * (torch.as_tensor(testset.targets) >= nc // 2) - 1
 
     P = len(trainset)
-    assert args.ptr <= 32 + P, "ptr is too large!!"
 
     # take random subset of training set
     torch.manual_seed(args.seed_trainset)
