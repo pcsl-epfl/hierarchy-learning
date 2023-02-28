@@ -133,6 +133,9 @@ class HierarchicalDataset(Dataset):
         )
         
         Pmax = m ** (2 ** num_layers - 1) * num_classes
+        
+        assert Pmax < 1e19, "Pmax cannot be represented with int64!! Parameters too large! Please open a github issue if you need a solution."
+        
         if max_dataset_size is None:
             max_dataset_size = Pmax
         if testsize == -1:
