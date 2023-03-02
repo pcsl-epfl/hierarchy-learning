@@ -34,3 +34,26 @@ def format_time(elapsed_time):
 
 def cpu_state_dict(f):
     return {k: deepcopy(f.state_dict()[k].cpu()) for k in f.state_dict()}
+
+def args2train_test_sizes(args):
+    Pmax = args.m ** (2 ** args.num_layers - 1) * args.num_classes
+
+    if 0 < args.pte <= 1:
+        args.pte = int(args.pte * Pmax)
+    elif args.pte == -1:
+        args.pte = min(Pmax // 5, 20000)
+    else:
+        args.pte = int(args.pte)
+
+    if args.ptr >= 0:
+        if args.ptr <= 1:
+            args.ptr = int(args.ptr * Pmax)
+        else:
+            args.ptr = int(args.ptr)
+        assert args.ptr > 1, "relative dataset size (P/Pmax) too small for such dataset!"
+    else:
+        args.ptr = int(- args.ptr * args.m ** args.num_layers * args.num_features)
+
+    args.pte = min(Pmax - args.ptr, args.pte)
+
+    return args.ptr, args.pte

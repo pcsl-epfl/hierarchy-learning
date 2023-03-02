@@ -13,7 +13,7 @@ from functools import partial
 
 from init import init_fun
 from optim_loss import loss_func, regularize, opt_algo, measure_accuracy
-from utils import cpu_state_dict
+from utils import cpu_state_dict, args2train_test_sizes
 from observables import locality_measure, state2permutation_stability
 
 def run(args):
@@ -354,25 +354,8 @@ def main():
         args.m = args.num_features
 
     # define train and test sets sizes
-    Pmax = args.m ** (2 ** args.num_layers - 1) * args.num_classes
 
-    if 0 < args.pte <= 1:
-        args.pte = int(args.pte * Pmax)
-    elif args.ptr == -1:
-        args.pte = min(Pmax // 5, 20000)
-    else:
-        args.pte = int(args.pte)
-
-    if args.ptr >= 0:
-        if args.ptr <= 1:
-            args.ptr = int(args.ptr * Pmax)
-        else:
-            args.ptr = int(args.ptr)
-        assert args.ptr > 0, "relative dataset size (P/Pmax) too small for such dataset!"
-    else:
-        args.ptr = int(- args.ptr * args.m ** args.num_layers * args.num_features)
-
-    args.pte = min(Pmax - args.ptr, args.pte)
+    args.ptr, args.pte = args2train_test_sizes(args)
 
     with open(args.output, "wb") as handle:
         pickle.dump(args, handle)

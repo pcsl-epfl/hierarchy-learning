@@ -3,9 +3,9 @@ import argparse
 import time
 import pickle
 import torch
-from utils import format_time
+from utils import format_time, args2train_test_sizes
 from datasets import dataset_initialization
-from kernels import gram_ntk
+from kernels import select_kernel
 from sklearn.svm import SVC
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -58,34 +58,36 @@ def run_krr(args):
     t1 = time.time()
     def timing_fun(t1):
         t2 = time.time()
-        print(format_time(t2 - t1))
+        print(format_time(t2 - t1), flush=True)
         t1 = t2
         return t1
 
     args.device = device
 
     # initialize dataset
-    print('Init dataset...')
+    print('Init dataset...', flush=True)
     trainset, testset, _, _ = dataset_initialization(args)
-    xtr, ytr = trainset.dataset.x[:ptr].flatten(1), 2 * trainset.dataset.targets[:ptr] - 1
-    xte, yte = testset.x[:pte].flatten(1), 2 * testset.targets[:pte] - 1
+    xtr, ytr = trainset.dataset.x[:ptr].permute(0, 2, 1).flatten(1), trainset.dataset.targets[:ptr]
+    xte, yte = testset.x[:pte].permute(0, 2, 1).flatten(1), testset.targets[:pte]
+
+    gram = select_kernel(args)
 
     t1 = timing_fun(t1)
 
-    print('Compute NTK gram matrix (train)...')
-    ktrtr = gram_ntk(xtr, xtr)
+    print('Compute gram matrix (train)...', flush=True)
+    ktrtr = gram(xtr, xtr)
     t1 = timing_fun(t1)
 
-    print('Compute NTK gram matrix (test)...')
-    ktetr = gram_ntk(xte, xtr)
+    print('Compute gram matrix (test)...', flush=True)
+    ktetr = gram(xte, xtr)
     t1 = timing_fun(t1)
 
     if args.algo == 'krr':
-        print('KRR...')
+        print('KRR...', flush=True)
         err = kernel_regression(ktrtr, ktetr, ytr, yte, args.l)
         timing_fun(t1)
     elif args.algo == 'svc':
-        print('SVC...')
+        print('SVC...', flush=True)
         err = svc(ktrtr, ktetr, ytr, yte, args.l)
         timing_fun(t1)
     else:
@@ -93,7 +95,7 @@ def run_krr(args):
 
     res = {
         'args': args,
-        'err': err,
+        'err': err.item(),
     }
 
     yield res
@@ -114,28 +116,35 @@ def main():
     parser.add_argument("--num_layers", type=int, default=2)
     parser.add_argument("--num_classes", type=int, default=-1)
     parser.add_argument("--input_format", type=str, default="onehot")
-    parser.add_argument("--seed_data", type=int, default=-1)
+    parser.add_argument("--seed_init", type=int, default=-1)
+    parser.add_argument("--seed_trainset", type=int, default=-1)
+    parser.add_argument("--whitening", type=int, default=0)
 
 
     """
            TRAINING ARGS
     """
     parser.add_argument("--algo", type=str, required=True)
+    parser.add_argument("--kernel", type=str, required=True)
 
-    parser.add_argument("--ptr", metavar="P", type=int, help="size of the training set")
-    parser.add_argument("--pte", type=int, help="size of the validation set", default=8192)
+    parser.add_argument("--ptr", metavar="P", type=float, help="size of the training set")
+    parser.add_argument("--pte", type=float, help="size of the validation set", default=512)
 
     ### ridge parameter ###
     parser.add_argument("--l", metavar="lambda", type=float, help="regularisation parameter")
 
-    # parser.add_argument("--pickle", type=str, required=False)
     parser.add_argument("--output", type=str, required=False, default="None")
 
-
     args = parser.parse_args()
-
     args.loss = 'none'
-
+    args.auto_regression = 0
+    if args.seed_trainset == -1:
+        args.seed_trainset = args.seed_init
+    if args.num_classes == -1:
+        args.num_classes = args.num_features
+    if args.m == -1:
+        args.m = args.num_features
+    args.ptr, args.pte = args2train_test_sizes(args)
     with open(args.output, "wb") as handle:
         pickle.dump(args, handle)
     try:
@@ -146,7 +155,6 @@ def main():
     except:
         os.remove(args.output)
         raise
-
 
 if __name__ == "__main__":
     main()
