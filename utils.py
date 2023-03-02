@@ -35,13 +35,13 @@ def format_time(elapsed_time):
 def cpu_state_dict(f):
     return {k: deepcopy(f.state_dict()[k].cpu()) for k in f.state_dict()}
 
-def args2train_test_sizes(args):
+def args2train_test_sizes(args, max_pte=20000):
     Pmax = args.m ** (2 ** args.num_layers - 1) * args.num_classes
 
     if 0 < args.pte <= 1:
         args.pte = int(args.pte * Pmax)
     elif args.pte == -1:
-        args.pte = min(Pmax // 5, 20000)
+        args.pte = min(Pmax // 5, max_pte)
     else:
         args.pte = int(args.pte)
 

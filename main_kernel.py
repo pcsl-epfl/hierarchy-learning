@@ -6,7 +6,7 @@ import torch
 from utils import format_time, args2train_test_sizes
 from datasets import dataset_initialization
 from kernels import select_kernel
-from sklearn.svm import SVC
+from sklearn.svm import SVC, LinearSVC
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -50,6 +50,24 @@ def svc(ktrtr, ktetr, ytr, yte, l):
 
     return terr
 
+def linear_svc(xtr, xte, ytr, yte, l):
+    """
+    Train a Support Vector Classifier
+    :param xtr: train samples
+    :param xte: test samples
+    :param ytr: training labels
+    :param yte: testing labels
+    :param l: l2 penalty
+    :return: classification error.
+    """
+    clf = LinearSVC(C=1/l, max_iter=10000000)
+    clf.fit(xtr, ytr)
+
+    y_hat = torch.tensor(clf.predict(xte))
+    terr = 1 - y_hat.eq(yte).float().mean()
+
+    return terr
+
 
 def run_krr(args):
 
@@ -70,28 +88,33 @@ def run_krr(args):
     xtr, ytr = trainset.dataset.x[:ptr].permute(0, 2, 1).flatten(1), trainset.dataset.targets[:ptr]
     xte, yte = testset.x[:pte].permute(0, 2, 1).flatten(1), testset.targets[:pte]
 
-    gram = select_kernel(args)
-
     t1 = timing_fun(t1)
 
-    print('Compute gram matrix (train)...', flush=True)
-    ktrtr = gram(xtr, xtr)
-    t1 = timing_fun(t1)
-
-    print('Compute gram matrix (test)...', flush=True)
-    ktetr = gram(xte, xtr)
-    t1 = timing_fun(t1)
-
-    if args.algo == 'krr':
-        print('KRR...', flush=True)
-        err = kernel_regression(ktrtr, ktetr, ytr, yte, args.l)
-        timing_fun(t1)
-    elif args.algo == 'svc':
-        print('SVC...', flush=True)
-        err = svc(ktrtr, ktetr, ytr, yte, args.l)
+    if args.algo == 'linear_svc':
+        assert args.kernel == 'linear', "Kernel must be linear for linearSVC algo."
+        err = linear_svc(xtr, xte, ytr, yte, args.l)
         timing_fun(t1)
     else:
-        raise ValueError('`algo` argument is invalid, must be either svc or krr!')
+        gram = select_kernel(args)
+        print('Compute gram matrix (train)...', flush=True)
+        ktrtr = gram(xtr, xtr)
+        t1 = timing_fun(t1)
+
+        print('Compute gram matrix (test)...', flush=True)
+        print(xte.shape, xtr.shape)
+        ktetr = gram(xte, xtr)
+        t1 = timing_fun(t1)
+
+        if args.algo == 'krr':
+            print('KRR...', flush=True)
+            err = kernel_regression(ktrtr, ktetr, ytr, yte, args.l)
+            timing_fun(t1)
+        elif args.algo == 'svc':
+            print('SVC...', flush=True)
+            err = svc(ktrtr, ktetr, ytr, yte, args.l)
+            timing_fun(t1)
+        else:
+            raise ValueError('`algo` argument is invalid, must be either svc or krr!')
 
     res = {
         'args': args,
@@ -144,7 +167,7 @@ def main():
         args.num_classes = args.num_features
     if args.m == -1:
         args.m = args.num_features
-    args.ptr, args.pte = args2train_test_sizes(args)
+    args.ptr, args.pte = args2train_test_sizes(args, max_pte=1000)
     with open(args.output, "wb") as handle:
         pickle.dump(args, handle)
     try:
