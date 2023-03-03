@@ -32,7 +32,7 @@ def kernel_regression(ktrtr, ktetr, ytr, yte, ridge):
     mse = (f - yte).pow(2).mean()
     return mse
 
-def svc(ktrtr, ktetr, ytr, yte, l):
+def svc(ktrtr, ktetr, ytr, yte, l, kernel='precomputed'):
     """
     Train a Support Vector Classifier
     :param ktrtr: train-train gram matrix
@@ -42,7 +42,7 @@ def svc(ktrtr, ktetr, ytr, yte, l):
     :param l: l2 penalty
     :return: classification error.
     """
-    clf = SVC(C=1/l, kernel="precomputed", max_iter=-1)
+    clf = SVC(C=1/l, kernel=kernel, max_iter=-1)
     clf.fit(ktrtr, ytr)
 
     y_hat = torch.tensor(clf.predict(ktetr))
@@ -92,6 +92,7 @@ def run_krr(args):
 
     if args.algo == 'linear_svc':
         assert args.kernel == 'linear', "Kernel must be linear for linearSVC algo."
+        print('Linear SVC...', flush=True)
         err = linear_svc(xtr, xte, ytr, yte, args.l)
         timing_fun(t1)
     else:
@@ -101,7 +102,6 @@ def run_krr(args):
         t1 = timing_fun(t1)
 
         print('Compute gram matrix (test)...', flush=True)
-        print(xte.shape, xtr.shape)
         ktetr = gram(xte, xtr)
         t1 = timing_fun(t1)
 

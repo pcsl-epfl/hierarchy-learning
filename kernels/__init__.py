@@ -4,6 +4,10 @@ import torch
 def select_kernel(args):
     if args.kernel == 'linear':
         return linear_kernel
+    if args.kernel == 'laplace':
+        return laplace
+    if args.kernel == 'gaussian':
+        return gaussian
     elif args.kernel == 'ntk':
         return gram_ntk
     else:
@@ -42,5 +46,22 @@ def linear_kernel(X, Y):
 
     return X @ Y.t()
 
-def laplace(X, Y, c=0.1):
-    return torch.exp(-c * (X[:, None] - Y[None]).pow(2).sum(dim=-1).sqrt())
+def laplace(X, Y=None, c=None):
+    '''
+    X, Y tensors of shape (n, d)
+    '''
+    if c is None:
+        c = 1 / X.shape[1]
+    if Y is None:
+        Y = X
+    return (-c * (X[:, None] - Y[None]).pow(2).sum(dim=-1).sqrt()).exp()
+
+def gaussian(X, Y=None, c=None):
+    '''
+    X, Y tensors of shape (n, d)
+    '''
+    if c is None:
+        c = 1 / X.shape[1]
+    if Y is None:
+        Y = X
+    return (-c / 2 * (X[:, None] - Y[None]).pow(2).sum(dim=-1)).exp()

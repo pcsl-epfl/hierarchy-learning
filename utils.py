@@ -41,7 +41,7 @@ def args2train_test_sizes(args, max_pte=20000):
     if 0 < args.pte <= 1:
         args.pte = int(args.pte * Pmax)
     elif args.pte == -1:
-        args.pte = min(Pmax // 5, max_pte)
+        args.pte = max_pte
     else:
         args.pte = int(args.pte)
 
