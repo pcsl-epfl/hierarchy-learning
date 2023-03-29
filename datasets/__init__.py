@@ -43,7 +43,7 @@ def dataset_initialization(args):
             train=True,
             transform=transform,
             testsize=args.pte,
-            memory_constraint= 10 * (args.ptr + args.pte)
+            max_dataset_size=args.ptr+args.pte
         )
 
         if args.pte:
@@ -58,7 +58,7 @@ def dataset_initialization(args):
                 train=False,
                 transform=transform,
                 testsize=args.pte,
-                memory_constraint= 10 * (args.ptr + args.pte)
+                max_dataset_size=args.ptr+args.pte
             )
         else:
             testset = None
@@ -100,7 +100,6 @@ def dataset_initialization(args):
             testset.targets = 2 * (torch.as_tensor(testset.targets) >= nc // 2) - 1
 
     P = len(trainset)
-    assert args.ptr <= 32 + P, "ptr is too large!!"
 
     # take random subset of training set
     torch.manual_seed(args.seed_trainset)
