@@ -198,7 +198,7 @@ class HierarchicalDataset(Dataset):
             if whitening:
                 inv_sqrt_n = (num_features - 1) ** -.5
                 self.x = self.x * (1 + inv_sqrt_n) - inv_sqrt_n
-        
+
         else:
             raise ValueError
 

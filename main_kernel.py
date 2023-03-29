@@ -171,12 +171,12 @@ def main():
 
     ## PAY ATTENTION TO THIS!!! ##
     # condition to run only if m^L/n < 1. #
-    upper_bound = args.m ** args.num_layers / args.num_features ** (2 * (1 - 2 ** -args.num_layers)) < 0.8
-    lower_bound = args.m ** args.num_layers / args.num_features ** (1 - 2 ** -args.num_layers) > 1.2
-    if upper_bound and lower_bound:
-        raise ValueError('Parameters outsize range for using couples to classify!')
-    if args.ptr > 30000:
-        raise ValueError("ptr too large!! (>30k)")
+    # upper_bound = args.m ** args.num_layers / args.num_features ** (2 * (1 - 2 ** -args.num_layers)) < 0.8
+    # lower_bound = args.m ** args.num_layers / args.num_features ** (1 - 2 ** -args.num_layers) > 1.2
+    # if upper_bound and lower_bound:
+    #     raise ValueError('Parameters outsize range for using couples to classify!')
+    # if args.ptr > 30000:
+    #     raise ValueError("ptr too large!! (>30k)")
 
     with open(args.output, "wb") as handle:
         pickle.dump(args, handle)
