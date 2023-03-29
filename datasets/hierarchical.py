@@ -198,9 +198,7 @@ class HierarchicalDataset(Dataset):
             if whitening:
                 inv_sqrt_n = (num_features - 1) ** -.5
                 self.x = self.x * (1 + inv_sqrt_n) - inv_sqrt_n
-            else:
-                exp = int("pairs" in input_format) + 1
-                self.x *= num_features ** exp
+        
         else:
             raise ValueError
 
@@ -258,3 +256,4 @@ def number2base(numbers, base, string_length=None):
         assert len(digits) <= string_length, "String length required is too small to represent numbers!"
         digits += [torch.zeros(len(numbers), dtype=int)] * (string_length - len(digits))
     return torch.stack(digits[::-1]).t()
+
