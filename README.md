@@ -1,3 +1,3 @@
 # Hierarchy Learning
 
-Learning a hierarchical model of data with neural networks.
+Implement the Random Hierarchy Model (RHM) in PyTorch and train (deep) neural networks or kernels on it.
