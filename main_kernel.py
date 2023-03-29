@@ -60,7 +60,7 @@ def linear_svc(xtr, xte, ytr, yte, l):
     :param l: l2 penalty
     :return: classification error.
     """
-    clf = LinearSVC(C=1/l, max_iter=10000000)
+    clf = LinearSVC(C=1/l, max_iter=-1)
     clf.fit(xtr, ytr)
 
     y_hat = torch.tensor(clf.predict(xte))
@@ -168,6 +168,16 @@ def main():
     if args.m == -1:
         args.m = args.num_features
     args.ptr, args.pte = args2train_test_sizes(args, max_pte=1000)
+
+    ## PAY ATTENTION TO THIS!!! ##
+    # condition to run only if m^L/n < 1. #
+    upper_bound = args.m ** args.num_layers / args.num_features ** (2 * (1 - 2 ** -args.num_layers)) < 0.8
+    lower_bound = args.m ** args.num_layers / args.num_features ** (1 - 2 ** -args.num_layers) > 1.2
+    if upper_bound and lower_bound:
+        raise ValueError('Parameters outsize range for using couples to classify!')
+    if args.ptr > 30000:
+        raise ValueError("ptr too large!! (>30k)")
+
     with open(args.output, "wb") as handle:
         pickle.dump(args, handle)
     try:
