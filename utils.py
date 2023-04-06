@@ -36,7 +36,7 @@ def cpu_state_dict(f):
     return {k: deepcopy(f.state_dict()[k].cpu()) for k in f.state_dict()}
 
 def args2train_test_sizes(args, max_pte=20000):
-    Pmax = args.m ** (2 ** args.num_layers - 1) * args.num_classes
+    Pmax = args.m ** ((s ** args.num_layers - 1) // (s - 1)) * args.num_classes
 
     if 0 < args.pte <= 1:
         args.pte = int(args.pte * Pmax)
