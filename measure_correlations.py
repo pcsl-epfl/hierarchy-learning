@@ -1,5 +1,5 @@
 import torch
-from datasets import HierarchicalDataset
+from datasets import RandomHierarchyModel
 from itertools import product
 import pandas as pd
 
@@ -18,7 +18,7 @@ for L, n, seed in product([4], [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 16, 20, 22, 24, 
 
     print(f'{L=}, {n=}, {seed=}', flush=True)
     #     try:
-    dataset = HierarchicalDataset(
+    dataset = RandomHierarchyModel(
         num_features=n,
         m=n,  # features multiplicity
         num_layers=L,

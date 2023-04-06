@@ -322,7 +322,8 @@ def main():
     )
 
     ### Observables ###
-    parser.add_argument("--stability", type=int, default=0)
+    parser.add_argument("--stability", type=int, default=0,
+                        help="1 to compute stability every checkpoint; 2 at end of training")
 
     ### SAVING ARGS ###
     parser.add_argument("--save_init_net", type=int, default=1)

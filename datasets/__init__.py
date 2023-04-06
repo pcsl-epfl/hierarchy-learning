@@ -1,5 +1,5 @@
 import torch
-from .hierarchical import HierarchicalDataset
+from .hierarchical import RandomHierarchyModel
 from .parity import ParityDataset
 
 
@@ -32,7 +32,7 @@ def dataset_initialization(args):
             # return x * mask, x
 
     if args.dataset == 'hier1':
-        trainset = HierarchicalDataset(
+        trainset = RandomHierarchyModel(
             num_features=args.num_features,
             m=args.m,  # features multiplicity
             num_layers=args.num_layers,
@@ -47,7 +47,7 @@ def dataset_initialization(args):
         )
 
         if args.pte:
-            testset = HierarchicalDataset(
+            testset = RandomHierarchyModel(
                 num_features=args.num_features,
                 m=args.m,  # features multiplicity
                 num_layers=args.num_layers,

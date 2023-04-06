@@ -3,7 +3,7 @@ import torch
 from torchvision.models.feature_extraction import get_graph_node_names
 from torchvision.models.feature_extraction import create_feature_extractor
 
-from datasets.hierarchical import HierarchicalDataset
+from datasets.hierarchical import RandomHierarchyModel
 from models import model_initialization
 
 def state2permutation_stability(state, args):
@@ -20,7 +20,7 @@ def state2permutation_stability(state, args):
 def build_permuted_datasets(args):
     x = []
     for seed_reset_layer in range(args.num_layers, -1, -1):
-        dataset = HierarchicalDataset(
+        dataset = RandomHierarchyModel(
             num_features=args.num_features,
             m=args.m,  # features multiplicity
             num_layers=args.num_layers,
@@ -32,8 +32,6 @@ def build_permuted_datasets(args):
             transform=None,
             testsize=0,
             seed_reset_layer=seed_reset_layer,
-            unique_datapoints=0,
-            memory_constraint=100 # small here b/c do not need very precise measure
         )
         x.append(dataset.x)
     return torch.cat(x)

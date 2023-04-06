@@ -17,7 +17,8 @@ def hierarchical_features(num_features, num_layers, m, num_classes, seed=0):
     :param m: features multiplicity (number of ways in which a feature can be made from sub-feat.)
     :param num_classes: number of different classes
     :param seed: sampling sub-features seed
-    :return: features hierarchy as a list of length num_layers
+    :return: features hierarchy as a list of length num_layers.
+             Each layer contains all paths going from label to layer.
     """
     random.seed(seed)
     features = [torch.arange(num_classes)]
@@ -115,9 +116,9 @@ def features_to_data(samples_indices, features, m, num_classes, num_layers, seed
     return x, y
 
 
-class HierarchicalDataset(Dataset):
+class RandomHierarchyModel(Dataset):
     """
-    Hierarchical dataset.
+    Implement the Random Hierarchy Model (RHM) as a PyTorch dataset.
     """
 
     def __init__(
