@@ -37,6 +37,7 @@ def dataset_initialization(args):
             m=args.m,  # features multiplicity
             num_layers=args.num_layers,
             num_classes=nc,
+            s=args.s, # tuples size
             input_format=args.input_format,
             whitening=args.whitening,
             seed=args.seed_init,
@@ -52,6 +53,7 @@ def dataset_initialization(args):
                 m=args.m,  # features multiplicity
                 num_layers=args.num_layers,
                 num_classes=nc,
+                s=args.s, # tuples size
                 input_format=args.input_format,
                 whitening=args.whitening,
                 seed=args.seed_init,
