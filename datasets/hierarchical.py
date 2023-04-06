@@ -9,13 +9,14 @@ import numpy as np
 from .utils import dec2bin
 
 
-def hierarchical_features(num_features, num_layers, m, num_classes, seed=0):
+def hierarchical_features(num_features, num_layers, m, num_classes, s, seed=0):
     """
     Build hierarchy of features.
     :param num_features: number of features to choose from at each layer (short: `n`).
     :param num_layers: number of layers in the hierarchy (short: `l`)
     :param m: features multiplicity (number of ways in which a feature can be made from sub-feat.)
     :param num_classes: number of different classes
+    :param s: sub-features tuple size
     :param seed: sampling sub-features seed
     :return: features hierarchy as a list of length num_layers.
              Each layer contains all paths going from label to layer.
@@ -27,7 +28,7 @@ def hierarchical_features(num_features, num_layers, m, num_classes, seed=0):
         features_set = list(set([i.item() for i in previous_features]))
         num_layer_features = len(features_set)
         # new_features = list(combinations(range(num_features), 2))
-        new_features = list(product(range(num_features), range(num_features)))
+        new_features = list(product(*[range(num_features) for _ in range(s)]))
         assert (
                 len(new_features) >= m * num_layer_features
         ), "Not enough features to choose from!!"
@@ -36,7 +37,7 @@ def hierarchical_features(num_features, num_layers, m, num_classes, seed=0):
         new_features = list(sum(new_features, ()))  # tuples to list
 
         new_features = torch.tensor(new_features)
-        new_features = new_features.reshape(-1, m, 2)  # [n_features h-1, m, 2]
+        new_features = new_features.reshape(-1, m, s)  # [n_features h-1, m, 2]
 
         # here new_features are ordered as what makes a 2, what makes a 1 etc...]
 
@@ -50,7 +51,7 @@ def hierarchical_features(num_features, num_layers, m, num_classes, seed=0):
     return features
 
 
-def features_to_data(samples_indices, features, m, num_classes, num_layers, seed=0, seed_reset_layer=42):
+def features_to_data(samples_indices, features, m, num_classes, num_layers, s, seed=0, seed_reset_layer=42):
     """
     Build hierarchical dataset from features hierarchy.
     :param samples_indices: torch tensor containing indices in [0, 1, ..., Pmax - 1] of datapoints to sample
@@ -59,14 +60,15 @@ def features_to_data(samples_indices, features, m, num_classes, num_layers, seed
     :param m: features multiplicity (number of ways in which a feature can be made from sub-feat.)
     :param num_classes: number of different classes
     :param num_layers: number of layers in the hierarchy (short: `l`)
+    :param s: sub-features tuple size
     :param seed: controls randomness in sampling for stability measurements
     :param seed_reset_layer: layer from which to randomize the choice of semantically equivalent subfeatures (for stability measurements)
     :return: dataset {x, y}
     """
 
-    Pmax = m ** (2 ** num_layers - 1) * num_classes
+    Pmax = m ** ((s ** num_layers - 1) // (s - 1)) * num_classes
 
-    x = features[-1].reshape(num_classes, *sum([(m, 2) for _ in range(num_layers)], ()))  # [nc, m, 2, m, 2, ...]
+    x = features[-1].reshape(num_classes, *sum([(m, s) for _ in range(num_layers)], ()))  # [nc, m, s, m, s, ...]
 
     groups_size = Pmax // num_classes
     y = samples_indices.div(groups_size, rounding_mode='floor')
@@ -79,9 +81,9 @@ def features_to_data(samples_indices, features, m, num_classes, num_layers, seed
             # indexing the left AND right sub-features (i.e. dimensions of size 2 in x)
             # Repeat is there such that higher level features are chosen consistently for a give data-point
             left_right = (
-                torch.arange(2)[None]
-                    .repeat(2 ** (num_layers - 2), 1)
-                    .reshape(2 ** (num_layers - l - 1), -1)
+                torch.arange(s)[None]
+                    .repeat(s ** (num_layers - 2), 1)
+                    .reshape(s ** (num_layers - l - 1), -1)
                     .t()
                     .flatten()
             )
@@ -94,13 +96,13 @@ def features_to_data(samples_indices, features, m, num_classes, num_layers, seed
             perm = torch.randperm(len(samples_indices))
             samples_indices = samples_indices[perm]
 
-        groups_size //= m ** (2 ** l)
+        groups_size //= m ** (s ** l)
         layer_indices = samples_indices.div(groups_size, rounding_mode='floor')
 
-        rules = number2base(layer_indices, m, string_length=2 ** l)
+        rules = number2base(layer_indices, m, string_length=s ** l)
         rules = (
             rules[:, None]
-                .repeat(1, 2 ** (num_layers - l - 1), 1)
+                .repeat(1, s ** (num_layers - l - 1), 1)
                 .permute(0, 2, 1)
                 .flatten(1)
         )
@@ -109,8 +111,8 @@ def features_to_data(samples_indices, features, m, num_classes, num_layers, seed
 
         samples_indices = samples_indices % groups_size
 
-    yi = y[:, None].repeat(1, 2 ** (num_layers - 1))
-
+    yi = y[:, None].repeat(1, s ** (num_layers - 1))
+    
     x = x[tuple([yi, *indices])].flatten(1)
 
     return x, y
@@ -127,6 +129,7 @@ class RandomHierarchyModel(Dataset):
             m=2,  # features multiplicity
             num_layers=2,
             num_classes=2,
+            s=2,
             seed=0,
             max_dataset_size=None,
             seed_traintest_split=0,
@@ -143,12 +146,13 @@ class RandomHierarchyModel(Dataset):
         self.m = m  # features multiplicity
         self.num_layers = num_layers
         self.num_classes = num_classes
+        self.s = s
 
         features = hierarchical_features(
-            num_features, num_layers, m, num_classes, seed=seed
+            num_features, num_layers, m, num_classes, s, seed=seed
         )
 
-        Pmax = m ** (2 ** num_layers - 1) * num_classes
+        Pmax = m ** ((s ** num_layers - 1) // (s - 1)) * num_classes
         assert Pmax < 1e19, "Pmax cannot be represented with int64!! Parameters too large! Please open a github issue if you need a solution."
         if max_dataset_size is None or max_dataset_size > Pmax:
             max_dataset_size = Pmax
@@ -172,7 +176,7 @@ class RandomHierarchyModel(Dataset):
             samples_indices = samples_indices[-testsize:]
 
         self.x, self.targets = features_to_data(
-            samples_indices, features, m, num_classes, num_layers, seed=seed, seed_reset_layer=seed_reset_layer
+            samples_indices, features, m, num_classes, num_layers, s, seed=seed, seed_reset_layer=seed_reset_layer
         )
 
         # encode input pairs instead of features
