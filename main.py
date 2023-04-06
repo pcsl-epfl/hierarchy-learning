@@ -279,6 +279,7 @@ def main():
     # Hierarchical dataset #
     parser.add_argument("--num_features", type=int, default=8)
     parser.add_argument("--m", type=int, default=2)
+    parser.add_argument("--s", type=int, default=2)
     parser.add_argument("--num_layers", type=int, default=2)
     parser.add_argument("--num_classes", type=int, default=-1)
     parser.add_argument("--input_format", type=str, default="onehot")
