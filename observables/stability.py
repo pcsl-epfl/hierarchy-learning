@@ -25,6 +25,7 @@ def build_permuted_datasets(args):
             m=args.m,  # features multiplicity
             num_layers=args.num_layers,
             num_classes=args.num_features,
+            s=args.s,
             input_format=args.input_format,
             whitening=args.whitening,
             seed=args.seed_init,
