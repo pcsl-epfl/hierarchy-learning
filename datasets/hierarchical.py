@@ -9,7 +9,7 @@ import numpy as np
 from .utils import dec2bin
 
 
-def hierarchical_features(num_features, num_layers, m, num_classes, s, seed=0):
+def sample_hierarchical_rules(num_features, num_layers, m, num_classes, s, seed=0):
     """
     Build hierarchy of features.
     :param num_features: number of features to choose from at each layer (short: `n`).
@@ -22,41 +22,44 @@ def hierarchical_features(num_features, num_layers, m, num_classes, s, seed=0):
              Each layer contains all paths going from label to layer.
     """
     random.seed(seed)
-    features = [torch.arange(num_classes)]
+    all_levels_paths = [torch.arange(num_classes)]
+    all_levels_tuples = []
     for l in range(num_layers):
-        previous_features = features[-1].flatten()
-        features_set = list(set([i.item() for i in previous_features]))
-        num_layer_features = len(features_set)
+        old_paths = all_levels_paths[-1].flatten()
+        # unique features in the previous level
+        old_features = list(set([i.item() for i in old_paths]))
+        num_old_features = len(old_features)
         # new_features = list(combinations(range(num_features), 2))
-        new_features = list(product(*[range(num_features) for _ in range(s)]))
+        # generate all possible new features at this level
+        new_tuples = list(product(*[range(num_features) for _ in range(s)]))
         assert (
-                len(new_features) >= m * num_layer_features
+                len(new_tuples) >= m * num_old_features
         ), "Not enough features to choose from!!"
-        random.shuffle(new_features)
-        new_features = new_features[: m * num_layer_features]
-        new_features = list(sum(new_features, ()))  # tuples to list
+        random.shuffle(new_tuples)
+        # samples as much as needed
+        new_tuples = new_tuples[: m * num_old_features]
+        new_tuples = list(sum(new_tuples, ()))  # tuples to list
 
-        new_features = torch.tensor(new_features)
-        new_features = new_features.reshape(-1, m, s)  # [n_features h-1, m, 2]
+        new_tuples = torch.tensor(new_tuples)
 
-        # here new_features are ordered as what makes a 2, what makes a 1 etc...]
+        new_tuples = new_tuples.reshape(-1, m, s)  # [n_features h-1, m, 2]
 
-        # map features to indices
-        feature_to_index = dict([(e, i) for i, e in enumerate(features_set)])
+        old_feature_to_index = dict([(e, i) for i, e in enumerate(old_features)])
 
-        indices = [feature_to_index[f.item()] for f in previous_features]
+        indices = [old_feature_to_index[f.item()] for f in old_paths]
 
-        new_features = new_features[indices]
-        features.append(new_features)
-    return features
+        new_paths = new_tuples[indices]
+
+        all_levels_tuples.append(new_tuples)
+        all_levels_paths.append(new_paths)
+    return all_levels_paths, all_levels_tuples
 
 
-def features_to_data(samples_indices, features, m, num_classes, num_layers, s, seed=0, seed_reset_layer=42):
+def sample_data_from_paths(samples_indices, paths, m, num_classes, num_layers, s, seed=0, seed_reset_layer=42):
     """
     Build hierarchical dataset from features hierarchy.
     :param samples_indices: torch tensor containing indices in [0, 1, ..., Pmax - 1] of datapoints to sample
-    :param features: hierarchy of features
-    :param num_features: features vocabulary size
+    :param paths: hierarchy of feature paths
     :param m: features multiplicity (number of ways in which a feature can be made from sub-feat.)
     :param num_classes: number of different classes
     :param num_layers: number of layers in the hierarchy (short: `l`)
@@ -68,7 +71,7 @@ def features_to_data(samples_indices, features, m, num_classes, num_layers, s, s
 
     Pmax = m ** ((s ** num_layers - 1) // (s - 1)) * num_classes
 
-    x = features[-1].reshape(num_classes, *sum([(m, s) for _ in range(num_layers)], ()))  # [nc, m, s, m, s, ...]
+    x = paths[-1].reshape(num_classes, *sum([(m, s) for _ in range(num_layers)], ()))  # [nc, m, s, m, s, ...]
 
     groups_size = Pmax // num_classes
     y = samples_indices.div(groups_size, rounding_mode='floor')
@@ -148,7 +151,7 @@ class RandomHierarchyModel(Dataset):
         self.num_classes = num_classes
         self.s = s
 
-        features = hierarchical_features(
+        paths, _ = sample_hierarchical_rules(
             num_features, num_layers, m, num_classes, s, seed=seed
         )
 
@@ -175,8 +178,8 @@ class RandomHierarchyModel(Dataset):
         else:
             samples_indices = samples_indices[-testsize:]
 
-        self.x, self.targets = features_to_data(
-            samples_indices, features, m, num_classes, num_layers, s, seed=seed, seed_reset_layer=seed_reset_layer
+        self.x, self.targets = sample_data_from_paths(
+            samples_indices, paths, m, num_classes, num_layers, s, seed=seed, seed_reset_layer=seed_reset_layer
         )
 
         # encode input pairs instead of features
@@ -232,6 +235,7 @@ class RandomHierarchyModel(Dataset):
 
 
 def pairs_to_num(xi, n):
+
     """
         Convert one long input with n-features encoding to n^2 pairs encoding.
     """
@@ -262,3 +266,24 @@ def number2base(numbers, base, string_length=None):
         digits += [torch.zeros(len(numbers), dtype=int)] * (string_length - len(digits))
     return torch.stack(digits[::-1]).t()
 
+
+def compute_true_occurrences(v, L, m, nc, model_seed):
+    """
+        Compute N_j(\alpha, \mu) at Pmax.
+    """
+    paths, _ = sample_hierarchical_rules(
+        v, L, m, nc, 2, seed=model_seed
+    )[-1]
+    # unroll paths tensor
+    x = paths.reshape(nc, *sum([(m, 2) for _ in range(L)], ()))
+    # multiplicity factor when going from paths to datapoints
+    mul = m ** (2 ** L - 1 - L)
+    # convert to base v (-> encoding of pairs)
+    x = x[..., 0] * v + x[..., 1]
+    # convert to one-hot-encoding so that N (occurrences ) can be obtained by summing
+    x = torch.nn.functional.one_hot(x, num_classes=v**2)
+    # sum over paths
+    x = x.sum(dim=[2 * k + 1 for k in range(L)]) # what's left is number of classes and space dimensions: [nc, {s,} x (L - 1)]
+    # if I don't care about space, can just flatten space dimensions (pay attention that they may not be ordered)!
+    x = x.flatten(start_dim=1, end_dim=-2) # [nc, 2 ** (L-1), v ** 2]
+    return x.permute(0, 2, 1) * mul # N(\alpha, \mu, j)
