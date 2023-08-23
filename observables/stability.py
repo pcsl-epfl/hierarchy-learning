@@ -6,6 +6,7 @@ from torchvision.models.feature_extraction import create_feature_extractor
 from datasets.hierarchical import RandomHierarchyModel
 from models import model_initialization
 
+
 def state2permutation_stability(state, args):
 
     x = build_permuted_datasets(args)
@@ -16,6 +17,7 @@ def state2permutation_stability(state, args):
         o = l(x.to(args.device))
 
     return measure_stability(o, args)
+
 
 def build_permuted_datasets(args):
     x = []
@@ -31,11 +33,13 @@ def build_permuted_datasets(args):
             seed=args.seed_init,
             train=True,
             transform=None,
+            max_dataset_size=100,
             testsize=0,
             seed_reset_layer=seed_reset_layer,
         )
         x.append(dataset.x)
     return torch.cat(x)
+
 
 def state2feature_extractor(state, args, input_dim, ch):
     net = model_initialization(args, input_dim=input_dim, ch=ch)

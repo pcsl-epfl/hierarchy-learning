@@ -6,6 +6,8 @@ def locality_measure(states, args, idxs=None, norm_weighted=False):
         Takes as input a list of weights matrices for layers l=0,1,2... .
     """
 
+    assert args.s == 2, "Locality measure only implemented for s=2!"
+
     locality = []
     idxs_none = idxs is None
     if idxs_none:
