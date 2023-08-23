@@ -340,8 +340,8 @@ def main():
     )
 
     ### Observables ###
-    parser.add_argument("--stability", type=int, default=0,
-                        help="1 to compute stability every checkpoint; 2 at end of training")
+    # how to use: 1 to compute stability every checkpoint; 2 at end of training. Default 0.
+    parser.add_argument("--stability", type=int, default=0)
     parser.add_argument("--clustering_error", type=int, default=0)
     parser.add_argument("--locality", type=int, default=0)
 

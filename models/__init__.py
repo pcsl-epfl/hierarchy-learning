@@ -30,6 +30,14 @@ def model_initialization(args, input_dim, ch):
             out_dim=num_outputs,
             bias=args.bias,
         )
+    elif args.net == "fcn2": # (h * space_dimension) neurons per layer instead of h
+        net = FCN2(
+            num_layers=args.net_layers,
+            input_channels=ch,
+            h=args.width,
+            out_dim=num_outputs,
+            bias=args.bias,
+        )
     elif args.net == "hlcn":
         net = LocallyHierarchicalNet(
             num_layers=args.net_layers,
@@ -45,14 +53,6 @@ def model_initialization(args, input_dim, ch):
             input_channels=ch,
             h=args.width,
             patch_size=args.filter_size,
-            out_dim=num_outputs,
-            bias=args.bias,
-        )
-    elif args.net == "fcn2":
-        net = FCN2(
-            num_layers=args.net_layers,
-            input_channels=ch,
-            h=args.width,
             out_dim=num_outputs,
             bias=args.bias,
         )
