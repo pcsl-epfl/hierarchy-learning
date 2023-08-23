@@ -314,7 +314,6 @@ def main():
     parser.add_argument("--width", type=int, default=64)
     parser.add_argument("--net_layers", type=int, default=3)
     parser.add_argument("--filter_size", type=int, default=2)
-    parser.add_argument("--pooling_size", type=int, default=2)
     parser.add_argument("--stride", type=int, default=2)
     parser.add_argument("--batch_norm", type=int, default=0)
     parser.add_argument("--bias", type=int, default=1, help="for some archs, controls bias presence")
