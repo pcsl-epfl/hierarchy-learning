@@ -36,7 +36,7 @@ def cpu_state_dict(f):
     return {k: deepcopy(f.state_dict()[k].cpu()) for k in f.state_dict()}
 
 def args2train_test_sizes(args, max_pte=20000):
-    Pmax = args.m ** ((s ** args.num_layers - 1) // (s - 1)) * args.num_classes
+    Pmax = args.m ** ((args.s ** args.num_layers - 1) // (args.s - 1)) * args.num_classes
 
     if 0 < args.pte <= 1:
         args.pte = int(args.pte * Pmax)
@@ -52,8 +52,31 @@ def args2train_test_sizes(args, max_pte=20000):
             args.ptr = int(args.ptr)
         assert args.ptr > 1, "relative dataset size (P/Pmax) too small for such dataset!"
     else:
-        args.ptr = int(- args.ptr * args.m ** args.num_layers * args.num_features)
+        args.ptr = int(- args.ptr * args.m ** args.num_layers * args.num_classes)
 
     args.pte = min(Pmax - args.ptr, args.pte)
 
     return args.ptr, args.pte
+
+
+def pca(x, d, whitening):
+    """
+    :param x: [P, ...]
+    :return: [P, d]
+    """
+
+    z = x.flatten(1)
+    mu = z.mean(0)
+    cov = (z - mu).t() @ (z - mu) / len(z)
+
+    val, vec = cov.symeig(eigenvectors=True)
+    val, idx = val.sort(descending=True)
+    vec = vec[:, idx]
+
+    u = (z - mu) @ vec[:, :d]
+    if whitening:
+        u.mul_(val[:d].rsqrt())
+    else:
+        u.mul_(val[:d].mean().rsqrt())
+
+    return u
