@@ -42,16 +42,17 @@ def sample_hierarchical_rules(num_features, num_layers, m, num_classes, s, seed=
 
         new_tuples = torch.tensor(new_tuples)
 
-        new_tuples = new_tuples.reshape(-1, m, s)  # [n_features h-1, m, 2]
+        new_tuples = new_tuples.reshape(-1, m, s)  # [n_features l-1, m, 2]
 
+        # next two lines needed because not all features are necessarily samples in previous level
         old_feature_to_index = dict([(e, i) for i, e in enumerate(old_features)])
+        old_paths_indices = [old_feature_to_index[f.item()] for f in old_paths]
 
-        indices = [old_feature_to_index[f.item()] for f in old_paths]
-
-        new_paths = new_tuples[indices]
+        new_paths = new_tuples[old_paths_indices]
 
         all_levels_tuples.append(new_tuples)
         all_levels_paths.append(new_paths)
+
     return all_levels_paths, all_levels_tuples
 
 
