@@ -66,7 +66,7 @@ class CNN2(nn.Module):
         return y
 
 
-class CNNLayerWise(nn.Module):
+class CNNLayerWise(nn.Module):    # only for patch_size = 2!!
     """
         CNN crafted to have an effective size equal to the corresponding HLCN.
         Trainable layerwise.
@@ -89,7 +89,7 @@ class CNNLayerWise(nn.Module):
         self.hier = nn.Sequential(*layers)
         self.beta = nn.Parameter(torch.randn(h, out_dim))
 
-    def init_layerwise_(self, l):
+    def init_layerwise_(self, l):        # this allows to keep the parameters but change the layer which is trained
         device = self.beta.device
         self.hier = nn.Sequential(*self.layers[:2 * (l + 1)])
         self.beta = nn.Parameter(torch.randn(self.h, self.out_dim, device=device))
@@ -98,8 +98,8 @@ class CNNLayerWise(nn.Module):
         if len(self.hier) == len(self.layers):
             y = self.hier(x)
         else:
-            with torch.no_grad():
-                y = self.hier[:-2](x)
+            with torch.no_grad():        # this trick allows to not train everything going under no_grad()
+                y = self.hier[:-2](x)    #
             y = self.hier[-2:](y)
         y = y.mean(dim=[-1])
         y = y @ self.beta / self.beta.size(0)
