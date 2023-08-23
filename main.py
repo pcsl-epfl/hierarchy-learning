@@ -14,9 +14,16 @@ from functools import partial
 from init import init_fun
 from optim_loss import loss_func, regularize, opt_algo, measure_accuracy
 from utils import cpu_state_dict, args2train_test_sizes
-from observables import locality_measure, state2permutation_stability
+from observables import locality_measure, state2permutation_stability, state2clustering_error
 
 def run(args):
+
+    # if args.dtype == 'float64':
+    #     torch.set_default_dtype(torch.float64)
+    # if args.dtype == 'float32':
+    #     torch.set_default_dtype(torch.float32)
+    # if args.dtype == 'float16':
+    #     torch.set_default_dtype(torch.float16)
 
     best_acc = 0  # best test accuracy
     criterion = partial(loss_func, args)
@@ -36,6 +43,7 @@ def run(args):
     terr = []
     locality = []
     stability = []
+    clustering_error = []
     epochs_list = []
 
     best = dict()
@@ -58,11 +66,9 @@ def run(args):
         if args.stability == 1:
             state = net.state_dict()
             stability.append(state2permutation_stability(state, args))
-
-        # avoid computing accuracy each and every epoch if dataset is small and epochs are rescaled
-        # if epoch > 250:
-        #     if epoch % (args.epochs // 250) != 0:
-        #         continue
+        if args.clustering_error == 1:
+            state = net.state_dict()
+            clustering_error.append(state2clustering_error(state, args))
 
         if epoch % 10 != 0 and not args.save_dynamics: continue
 
@@ -98,6 +104,7 @@ def run(args):
             "terr": terr,
             "locality": locality,
             "stability": stability,
+            "clustering_error": clustering_error,
             "dynamics": dynamics,
             "best": best,
         }
@@ -119,6 +126,10 @@ def run(args):
         state = net.state_dict()
         stability.append(state2permutation_stability(state, args))
 
+    if args.clustering_error == 2:
+        state = net.state_dict()
+        clustering_error.append(state2clustering_error(state, args))
+
     out = {
         "args": args,
         "epoch": epochs_list,
@@ -126,6 +137,7 @@ def run(args):
         "terr": terr,
         "locality": locality,
         "stability": stability,
+        "clustering_error": clustering_error,
         "dynamics": dynamics,
         "init": cpu_state_dict(net0) if args.save_init_net else None,
         "best": best,
@@ -258,7 +270,7 @@ def main():
 
     ### Tensors type ###
     parser.add_argument("--device", type=str, default="cuda")
-    parser.add_argument("--dtype", type=str, default="float64")
+    parser.add_argument("--dtype", type=str, default="float32")
 
     ### Seeds ###
     parser.add_argument("--seed_init", type=int, default=0)
@@ -325,6 +337,7 @@ def main():
     ### Observables ###
     parser.add_argument("--stability", type=int, default=0,
                         help="1 to compute stability every checkpoint; 2 at end of training")
+    parser.add_argument("--clustering_error", type=int, default=0)
 
     ### SAVING ARGS ###
     parser.add_argument("--save_init_net", type=int, default=1)
