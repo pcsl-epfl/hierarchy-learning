@@ -10,7 +10,7 @@ class NonOverlappingLocallyConnected1d(nn.Module):
             torch.randn(
                 out_channels,
                 input_channels,
-                out_dim * 2,
+                out_dim * 2, # 2 would become patch_size
             )
         )
         if bias:
