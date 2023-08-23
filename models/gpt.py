@@ -140,7 +140,7 @@ class Transformer(nn.Module):
 
         self.transformer = nn.ModuleDict(dict(
             wte = nn.Embedding(vocab_size, n_embd),
-            wpe = nn.Embedding(block_size, n_embd), # TODO: why not the usual positional embedding (sin and cos)?
+            wpe = nn.Embedding(block_size, n_embd), # TODO: can implement the usual positional embedding (sin and cos)?
             drop = nn.Dropout(embd_pdrop),
             blocks = nn.ModuleList([TransformerBlock(n_head, n_embd, resid_pdrop, attn_pdrop, block_size, right_masking) for _ in range(n_layer)]),
             ln_f = nn.LayerNorm(n_embd),

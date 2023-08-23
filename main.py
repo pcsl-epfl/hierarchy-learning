@@ -56,7 +56,8 @@ def run(args):
         epochs_list.append(epoch)
 
         # measuring locality for fcn nets
-        if args.net == 'fcn':
+        if args.locality == 1:
+            assert args.net == 'fcn', "Locality can only be computed for fcns !!"
             state = net.state_dict()
             hidden_layers = [state[k] for k in state if 'w' in k][:-2]
             with torch.no_grad():
@@ -121,6 +122,13 @@ def run(args):
     except:
         print("Weights evolution failed!")
         wo = None
+
+    if args.locality == 2:
+        assert args.net == 'fcn', "Locality can only be computed for fcns !!"
+        state = net.state_dict()
+        hidden_layers = [state[k] for k in state if 'w' in k][:-2]
+        with torch.no_grad():
+            locality.append(locality_measure(hidden_layers, args)[0])
 
     if args.stability == 2:
         state = net.state_dict()
@@ -338,6 +346,7 @@ def main():
     parser.add_argument("--stability", type=int, default=0,
                         help="1 to compute stability every checkpoint; 2 at end of training")
     parser.add_argument("--clustering_error", type=int, default=0)
+    parser.add_argument("--locality", type=int, default=0)
 
     ### SAVING ARGS ###
     parser.add_argument("--save_init_net", type=int, default=1)

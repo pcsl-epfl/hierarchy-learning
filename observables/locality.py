@@ -32,7 +32,7 @@ def locality_measure(states, args, idxs=None, norm_weighted=False):
         # sort the vectors norm in the space dimension to later compute relative norms
         sorted_patch_norm = patch_norm.sort(dim=0, descending=True).values
         # compute relative norms as locality measures
-        norm_ratios = sorted_patch_norm[0] / sorted_patch_norm[1:].mean(dim=0)
+        norm_ratios = sorted_patch_norm[0] / sorted_patch_norm.mean(dim=0) # informative norm divided by total norm
 
         # use weights norm to do a weighted average
         if norm_weighted:
