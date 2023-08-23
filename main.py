@@ -281,19 +281,18 @@ def main():
     parser.add_argument("--dtype", type=str, default="float32")
 
     ### Seeds ###
-    parser.add_argument("--seed_init", type=int, default=0)
-    parser.add_argument("--seed_net", type=int, default=-1)
-    parser.add_argument("--seed_trainset", type=int, default=-1)
+    parser.add_argument("--seed_init", type=int, default=0)        # seed random-hierarchy-model
+    parser.add_argument("--seed_net", type=int, default=-1)        # network initalisation
+    parser.add_argument("--seed_trainset", type=int, default=-1)   # training sample 
 
     ### DATASET ARGS ###
-    parser.add_argument("--dataset", type=str, required=True)
+    parser.add_argument("--dataset", type=str, required=True)    # hier1 for hierarchical
     parser.add_argument("--ptr", type=float, default=0.8,
         help="Number of training point. If in [0, 1], fraction of training points w.r.t. total.",
-    )
+    )    # negative argument sets P to |arg|*P^*
     parser.add_argument("--pte", type=float, default=.2)
     parser.add_argument("--batch_size", type=int, default=128)
     parser.add_argument("--scale_batch_size", type=int, default=0)
-
     parser.add_argument("--background_noise", type=float, default=0)
 
     # Hierarchical dataset #
@@ -304,26 +303,22 @@ def main():
     parser.add_argument("--num_classes", type=int, default=-1)
     parser.add_argument("--input_format", type=str, default="onehot")
     parser.add_argument("--whitening", type=int, default=0)
-    parser.add_argument("--auto_regression", type=int, default=0)
+    parser.add_argument("--auto_regression", type=int, default=0)    # not for now
 
     ### ARCHITECTURES ARGS ###
-    parser.add_argument("--net", type=str, required=True)
-    parser.add_argument("--random_features", type=int, default=0)
+    parser.add_argument("--net", type=str, required=True)    # fcn or cnn
 
     ## Nets params ##
     parser.add_argument("--width", type=int, default=64)
     parser.add_argument("--net_layers", type=int, default=3)
     parser.add_argument("--filter_size", type=int, default=2)
-    parser.add_argument("--pooling_size", type=int, default=2)
     parser.add_argument("--stride", type=int, default=2)
-    parser.add_argument("--dropout", type=float, default=0)
     parser.add_argument("--batch_norm", type=int, default=0)
     parser.add_argument("--bias", type=int, default=1, help="for some archs, controls bias presence")
     parser.add_argument("--pbc", type=int, default=0, help="periodic boundaries cnn")
 
     ## Auto-regression with Transformers ##
-    parser.add_argument("--pmask", type=float, default=.2)
-
+    parser.add_argument("--pmask", type=float, default=.2)    # not for now
 
     ### ALGORITHM ARGS ###
     parser.add_argument("--loss", type=str, default="cross_entropy")
