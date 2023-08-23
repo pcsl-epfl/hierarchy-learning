@@ -1,13 +1,11 @@
 import torch
 import torch.backends.cudnn as cudnn
 
-from .fcn import DenseNet
-from .cnn import ConvNetGAPMF # ConvNet2L
+from .fcn import FCN
 from .lcn import LocallyHierarchicalNet
-from .cnn2 import CNN2, CNNLayerWise
+from .cnn import CNN, CNNLayerWise
 from .fcn2 import FCN2
 from .gcnn import GCNN
-from .rf import RFLayerwise
 
 
 def model_initialization(args, input_dim, ch):
@@ -25,27 +23,13 @@ def model_initialization(args, input_dim, ch):
     net = None
 
     if args.net == "fcn":
-        net = DenseNet(
-            n_layers=args.net_layers,
-            input_dim=input_dim * ch,
+        net = FCN(
+            num_layers=args.net_layers,
+            input_channels=ch,
             h=args.width,
             out_dim=num_outputs,
-            batch_norm=args.batch_norm,
-            # bias=args.bias,
+            bias=args.bias,
         )
-    elif args.net == "cnn":
-        net = ConvNetGAPMF(
-            n_blocks=args.net_layers,
-            input_ch=ch,
-            h=args.width,
-            filter_size=args.filter_size,
-            stride=args.stride,
-            pbc=args.pbc,
-            out_dim=num_outputs,
-            batch_norm=args.batch_norm,
-        )
-
-    ### The next 4 architectures are built to have the same *effective* number of parameters ###
     elif args.net == "hlcn":
         net = LocallyHierarchicalNet(
             num_layers=args.net_layers,
@@ -55,12 +39,12 @@ def model_initialization(args, input_dim, ch):
             out_dim=num_outputs,
             bias=args.bias,
         )
-    elif args.net == "cnn2":
-        net = CNN2(
+    elif args.net == "cnn":
+        net = CNN(
             num_layers=args.net_layers,
             input_channels=ch,
             h=args.width,
-            # filter_size=args.filter_size,
+            patch_size=args.filter_size,
             out_dim=num_outputs,
             bias=args.bias,
         )
@@ -86,14 +70,6 @@ def model_initialization(args, input_dim, ch):
             input_channels=ch,
             h=args.width,
             # filter_size=args.filter_size,
-            out_dim=num_outputs,
-            bias=args.bias,
-        )
-    elif args.net == "rf_layerwise":
-        net = RFLayerwise(
-            num_layers=args.net_layers,
-            input_channels=ch,
-            h=args.width,
             out_dim=num_outputs,
             bias=args.bias,
         )

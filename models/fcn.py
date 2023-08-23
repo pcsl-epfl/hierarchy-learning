@@ -1,65 +1,58 @@
 import torch
 from torch import nn
 
-
-class DenseBlock(nn.Module):
-    def __init__(self, input_dim, h, last=False, dropout=False, batch_norm=False, bias=True):
-        super().__init__()
-        self.w = nn.Parameter(torch.randn(input_dim, h))
-        if bias:
-            self.b = nn.Parameter(torch.randn(h))
-        else:
-            self.b = None
-        self.last = last
-        if dropout:
-            self.dropout = nn.Dropout(dropout)
-        else:
-            self.dropout = None
-        if batch_norm:
-            self.batch_norm = nn.BatchNorm1d(h)
-        else:
-            self.batch_norm = None
-
-    def forward(self, x):
-        x = torch.flatten(x, start_dim=1)
-        input_dim = x.size(1)
-        scale = input_dim if self.last else input_dim ** 0.5
-
-        if self.b is None:
-            y = x @ self.w / scale
-        else:
-            y = x @ self.w / scale + self.b * 0.1
-
-        if self.dropout is not None:
-            y = self.dropout(y)
-
-        y = y.squeeze() if self.last else y.relu()
-
-        if self.batch_norm is not None:
-            y = self.batch_norm(y)
-        return y
-
-
-class DenseNet(nn.Module):
+class Linear1d(nn.Module):
     def __init__(
-        self, n_layers, input_dim, h, out_dim, dropout=False, batch_norm=False
+        self, input_channels, out_channels, out_dim, bias=False
     ):
-        super().__init__()
-        if n_layers == 1:
-            self.fcn = DenseBlock(
-                input_dim, out_dim, dropout=dropout, last=True, bias=True
+        super(Linear1d, self).__init__()
+        self.weight = nn.Parameter( # input [bs, cin * space], weight [cout * space // 2, cin * space]
+            torch.randn(
+                out_channels,
+                input_channels,
             )
+        )
+        if bias:
+            self.bias = nn.Parameter(torch.randn(1, out_channels))
         else:
-            self.fcn = nn.Sequential(
-                DenseBlock(
-                    input_dim, h, dropout=dropout, batch_norm=batch_norm, bias=True
-                ),
-                *[
-                    DenseBlock(h, h, dropout=dropout, batch_norm=batch_norm, bias=True)
-                    for _ in range(n_layers - 2)
-                ],
-                DenseBlock(h, out_dim, last=True, dropout=dropout, bias=False)
-            )
+            self.register_parameter("bias", None)
+
+        self.input_channels = input_channels
+        self.out_dim = out_dim
 
     def forward(self, x):
-        return self.fcn(x)
+        x = x[:, None] * self.weight # [bs, cout * space // 2, cin * space]
+        x = x.sum(dim=-1) # [bs, cout * space // 2]
+        x /= self.input_channels ** .5
+        if self.bias is not None:
+            x += self.bias * 0.1
+        return x
+
+
+class FCN(nn.Module):
+    def __init__(self, input_channels, h, out_dim, num_layers, bias=False):
+        super(FCN2, self).__init__()
+
+        d = 2 ** num_layers
+
+        self.hier = nn.Sequential(
+            Linear1d(
+                input_channels, h, d // 2, bias
+            ),
+            nn.ReLU(),
+            *[nn.Sequential(
+                    Linear1d(
+                        h, h, d // 2 ** (l + 1), bias
+                    ),
+                    nn.ReLU(),
+                )
+                for l in range(1, num_layers)
+            ],
+        )
+        self.beta = nn.Parameter(torch.randn(h * d // 2 ** num_layers, out_dim))
+
+    def forward(self, x):
+        y = x.flatten(1) # [bs, cin, space] -> [bs, cin * space]
+        y = self.hier(y)
+        y = y @ self.beta / self.beta.size(0)
+        return y
