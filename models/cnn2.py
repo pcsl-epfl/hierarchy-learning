@@ -3,7 +3,7 @@ from torch import nn
 
 class NonOverlappingConv1d(nn.Module):
     def __init__(
-        self, input_channels, out_channels, out_dim, bias=False
+        self, input_channels, out_channels, out_dim, patch_size, bias=False
     ):
         super(NonOverlappingConv1d, self).__init__()
         self.weight = nn.Parameter( # input [bs, cin, space / 2, 2], weight [cout, cin, 1, 2]
@@ -11,7 +11,7 @@ class NonOverlappingConv1d(nn.Module):
                 out_channels,
                 input_channels,
                 1,
-                2,
+                patch_size,
             )
         )
         if bias:
@@ -20,12 +20,13 @@ class NonOverlappingConv1d(nn.Module):
             self.register_parameter("bias", None)
 
         self.input_channels = input_channels
+        self.patch_size = patch_size
 
     def forward(self, x):
         bs, cin, d = x.shape
-        x = x.view(bs, 1, cin, d // 2, 2) # [bs, 1, cin, space // 2, 2]
-        x = x * self.weight # [bs, cout, cin, space // 2, 2]
-        x = x.sum(dim=[-1, -3]) # [bs, cout, space // 2]
+        x = x.view(bs, 1, cin, d // self.patch_size, self.patch_size) # [bs, 1, cin, space // patch_size, patch_size]
+        x = x * self.weight # [bs, cout, cin, space // patch_size, patch_size]
+        x = x.sum(dim=[-1, -3]) # [bs, cout, space // patch_size]
         x /= self.input_channels ** .5
         if self.bias is not None:
             x += self.bias * 0.1
@@ -36,20 +37,20 @@ class CNN2(nn.Module):
     """
         CNN crafted to have an effective size equal to the corresponding HLCN.
     """
-    def __init__(self, input_channels, h, out_dim, num_layers, bias=False):
+    def __init__(self, input_channels, h, out_dim, num_layers, patch_size=2, bias=False):
         super(CNN2, self).__init__()
 
-        d = 2 ** num_layers
+        d = patch_size ** num_layers
         self.d = d
 
         self.hier = nn.Sequential(
             NonOverlappingConv1d(
-                input_channels, h, d // 2, bias
+                input_channels, h, d // patch_size, patch_size, bias
             ),
             nn.ReLU(),
             *[nn.Sequential(
                     NonOverlappingConv1d(
-                        h, h, d // 2 ** (l + 1), bias
+                        h, h, d // patch_size ** (l + 1), patch_size, bias
                     ),
                     nn.ReLU(),
                 )
