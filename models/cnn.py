@@ -35,7 +35,7 @@ class NonOverlappingConv1d(nn.Module):
 
 class CNN(nn.Module):
     def __init__(self, input_channels, h, out_dim, num_layers, patch_size=2, bias=False):
-        super(CNN2, self).__init__()
+        super(CNN, self).__init__()
 
         d = patch_size ** num_layers
         self.d = d
