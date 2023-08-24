@@ -31,7 +31,7 @@ class Linear1d(nn.Module):
 
 class FCN(nn.Module):
     def __init__(self, input_channels, h, out_dim, num_layers, bias=False):
-        super(FCN2, self).__init__()
+        super(FCN, self).__init__()
 
         d = 2 ** num_layers
 
