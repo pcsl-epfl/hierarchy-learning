@@ -25,7 +25,7 @@ def model_initialization(args, input_dim, ch):
     if args.net == "fcn":
         net = FCN(
             num_layers=args.net_layers,
-            input_channels=ch,
+            input_channels=ch * input_dim,
             h=args.width,
             out_dim=num_outputs,
             bias=args.bias,

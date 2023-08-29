@@ -3,10 +3,10 @@ from torch import nn
 
 class Linear1d(nn.Module):
     def __init__(
-        self, input_channels, out_channels, out_dim, bias=False
+        self, input_channels, out_channels, bias=False
     ):
         super(Linear1d, self).__init__()
-        self.weight = nn.Parameter( # input [bs, cin * space], weight [cout * space // 2, cin * space]
+        self.weight = nn.Parameter( # input [bs, cin], weight [cout, cin]
             torch.randn(
                 out_channels,
                 input_channels,
@@ -18,11 +18,10 @@ class Linear1d(nn.Module):
             self.register_parameter("bias", None)
 
         self.input_channels = input_channels
-        self.out_dim = out_dim
 
     def forward(self, x):
-        x = x[:, None] * self.weight # [bs, cout * space // 2, cin * space]
-        x = x.sum(dim=-1) # [bs, cout * space // 2]
+        x = x[:, None] * self.weight # [bs, cout, cin]
+        x = x.sum(dim=-1) # [bs, cout]
         x /= self.input_channels ** .5
         if self.bias is not None:
             x += self.bias * 0.1
@@ -33,23 +32,21 @@ class FCN(nn.Module):
     def __init__(self, input_channels, h, out_dim, num_layers, bias=False):
         super(FCN, self).__init__()
 
-        d = 2 ** num_layers
-
         self.hier = nn.Sequential(
             Linear1d(
-                input_channels, h, d // 2, bias
+                input_channels, h, bias
             ),
             nn.ReLU(),
             *[nn.Sequential(
                     Linear1d(
-                        h, h, d // 2 ** (l + 1), bias
+                        h, h, bias
                     ),
                     nn.ReLU(),
                 )
-                for l in range(1, num_layers)
+                for _ in range(1, num_layers)
             ],
         )
-        self.beta = nn.Parameter(torch.randn(h * d // 2 ** num_layers, out_dim))
+        self.beta = nn.Parameter(torch.randn(h, out_dim))
 
     def forward(self, x):
         y = x.flatten(1) # [bs, cin, space] -> [bs, cin * space]
