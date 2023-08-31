@@ -30,8 +30,8 @@ def run(args):
 
     trainloader, testloader, net0 = init_fun(args)
 
-    # scale batch size when smaller than train-set size
-    if (args.batch_size <= args.ptr) and args.scale_batch_size:
+    # scale batch size when larger than train-set size
+    if (args.batch_size >= args.ptr) and args.scale_batch_size:
         args.batch_size = args.ptr // 2
 
     if args.save_dynamics:
